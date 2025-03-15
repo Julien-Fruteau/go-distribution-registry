@@ -116,7 +116,7 @@ const (
 	blobsPath     = `%s/blobs/%s`
 )
 
-func (r *Registry) GetTags(repository string) (TagsResponse, http.Header, error) {
+func (r *RegistryClient) GetTags(repository string) (TagsResponse, http.Header, error) {
 	u := fmt.Sprintf(r.baseUrl+tagsPath, repository)
 	response, respHeaders, err := HttpDo[TagsResponse](r.httpClient, http.MethodGet, u, r.httpHeaders, nil)
 	if err != nil {
@@ -125,7 +125,7 @@ func (r *Registry) GetTags(repository string) (TagsResponse, http.Header, error)
 	return response, respHeaders, nil
 }
 
-func (r *Registry) GetManifests(repository, reference string) (ManifestsResponse, http.Header, error) {
+func (r *RegistryClient) GetManifests(repository, reference string) (ManifestsResponse, http.Header, error) {
 	u := fmt.Sprintf(r.baseUrl+manifestsPath, repository, reference)
 	h := r.GetCustomHeader(fmt.Sprintf(`%s, %s`, MIME_OCI_LIST, MIME_V2_LIST))
 	response, respHeaders, err := HttpDo[ManifestsResponse](r.httpClient, http.MethodGet, u, h, nil)
@@ -135,7 +135,7 @@ func (r *Registry) GetManifests(repository, reference string) (ManifestsResponse
 	return response, respHeaders, nil
 }
 
-func (r *Registry) GetManifest(repository, reference, mediaType string) (ManifestResponse, http.Header, error) {
+func (r *RegistryClient) GetManifest(repository, reference, mediaType string) (ManifestResponse, http.Header, error) {
 	u := fmt.Sprintf(r.baseUrl+manifestsPath, repository, reference)
 	h := r.GetCustomHeader(mediaType)
 	response, respHeaders, err := HttpDo[ManifestResponse](r.httpClient, http.MethodGet, u, h, nil)
@@ -156,7 +156,7 @@ func (r *Registry) GetManifest(repository, reference, mediaType string) (Manifes
 // 	return response, respHeaders, nil
 // }
 
-func (r *Registry) ConfigInfo(repository, reference, mediaType string) (ConfigInfo, http.Header, error) {
+func (r *RegistryClient) ConfigInfo(repository, reference, mediaType string) (ConfigInfo, http.Header, error) {
 	if mediaType != MIME_V2_CONFIG && mediaType != MIME_OCI_CONFIG {
 		return ConfigInfo{}, nil, fmt.Errorf("unexpected media type %s, wants %s or %s", mediaType, MIME_V2_CONFIG, MIME_OCI_CONFIG)
 	}
@@ -172,7 +172,7 @@ func (r *Registry) ConfigInfo(repository, reference, mediaType string) (ConfigIn
 // get images config info (inspect) from name and tag.
 // returns a list of inspect info, for each manifests found for the tag
 // inspect info is based on config info + additional image info
-func (r *Registry) InspectCustom(name, tag string) ([]InspectInfo, error) {
+func (r *RegistryClient) InspectCustom(name, tag string) ([]InspectInfo, error) {
 	var inspectInfos []InspectInfo
 	tagsResp, _, err := r.GetTags(name)
 	if err != nil {
@@ -276,7 +276,7 @@ func NewInspectInfo(name string, tagInfo Tag, digest, mediaType string, configRe
 }
 
 // returns the raw config info (blobs/<>/digest content-type MIME_V2_CONFIG or MIME_OCI_CONFIG)
-func (r *Registry) Inspect(name, tag string) ([]ConfigInfo, error) {
+func (r *RegistryClient) Inspect(name, tag string) ([]ConfigInfo, error) {
 	var inspectInfos []ConfigInfo
 
 	manifestsResp, respHeaders, err := r.GetManifests(name, tag)
@@ -353,7 +353,7 @@ func (r *Registry) Inspect(name, tag string) ([]ConfigInfo, error) {
 //	  }
 //
 // }
-func (r *Registry) UploadImage() {
+func (r *RegistryClient) UploadImage() {
 }
 
 // TODO: Upload stuff
@@ -403,44 +403,43 @@ func (r *Registry) UploadImage() {
 // DELETE /v2/<name>/blobs/uploads/<uuid>
 //
 
-
-func (r *Registry) DeleteManifest(repository, mediaType string, digest digest.Digest) (bool, error) {
-  // TODO : ? check only mime manifest v2 or oci manifest ?
+func (r *RegistryClient) DeleteManifest(repository, mediaType string, digest digest.Digest) (bool, error) {
+	// TODO : ? check only mime manifest v2 or oci manifest ?
 	u := fmt.Sprintf(r.baseUrl+manifestsPath, repository)
 	h := r.GetCustomHeader(mediaType)
-  req, err := GetNewRequest(http.MethodDelete, u, h, nil)
-  if err != nil {
-    return false, fmt.Errorf("error creating request to delete %s manifest:\n%v", digest, err)
-  }
-  resp, err := r.httpClient.Do(req)
-  if err != nil {
-    return false, fmt.Errorf("error deleting %s manifest:\n%v", digest, err)
-  }
+	req, err := GetNewRequest(http.MethodDelete, u, h, nil)
+	if err != nil {
+		return false, fmt.Errorf("error creating request to delete %s manifest:\n%v", digest, err)
+	}
+	resp, err := r.httpClient.Do(req)
+	if err != nil {
+		return false, fmt.Errorf("error deleting %s manifest:\n%v", digest, err)
+	}
 
-  switch resp.StatusCode {
-  case http.StatusAccepted:
-    return true, nil
-  case http.StatusNotFound:
-    return true, nil
-  default:
-    errMsg := fmt.Sprintf("unexpected status code %d returned from delete %s manifest:\n%v", resp.StatusCode, digest, err)
-    defer resp.Body.Close()
-    b, err := io.ReadAll(resp.Body)
-    if err != nil {
-      return false, fmt.Errorf("%s", errMsg)
-    }
-    var respErr RegistryError
-    err = json.Unmarshal(b, &respErr)
-    if err != nil {
-      return false, fmt.Errorf("%s, %s", errMsg, string(b))
-    }
-    return false, fmt.Errorf("%s, %v", errMsg, respErr)
-  }
+	switch resp.StatusCode {
+	case http.StatusAccepted:
+		return true, nil
+	case http.StatusNotFound:
+		return true, nil
+	default:
+		errMsg := fmt.Sprintf("unexpected status code %d returned from delete %s manifest:\n%v", resp.StatusCode, digest, err)
+		defer resp.Body.Close()
+		b, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return false, fmt.Errorf("%s", errMsg)
+		}
+		var respErr RegistryError
+		err = json.Unmarshal(b, &respErr)
+		if err != nil {
+			return false, fmt.Errorf("%s, %s", errMsg, string(b))
+		}
+		return false, fmt.Errorf("%s, %v", errMsg, respErr)
+	}
 }
 
 // 🔥 If a layer is deleted which is referenced by a manifest in the registry, then the complete images will not be resolvable.
 // returns 404 not found (does not exists or already deleted)
-func (r *Registry) DeleteLayer(name, mediaType string, digest digest.Digest) (bool, error) {
+func (r *RegistryClient) DeleteLayer(name, mediaType string, digest digest.Digest) (bool, error) {
 	u := fmt.Sprintf(r.baseUrl+blobsPath, digest)
 	h := r.GetCustomHeader(mediaType)
 	req, err := GetNewRequest(http.MethodDelete, u, h, nil)

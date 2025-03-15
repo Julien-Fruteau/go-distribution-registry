@@ -39,7 +39,7 @@ type CatalogResponse struct {
 //   - if provided: last must be used to get the next pagination
 //
 // Next : GET /v2/_catalog?n=<n from the request>&last=<last repository value from previous response>
-func (r *Registry) Catalog() ([]string, error) {
+func (r *RegistryClient) Catalog() ([]string, error) {
 	repositories := make([]string, 0)
 	// number of repositories to get per request
 	n := "100"

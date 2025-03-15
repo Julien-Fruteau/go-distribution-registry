@@ -42,7 +42,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	r := registry.NewRegistry()
+	r := registry.NewRegistryClient()
 
 	switch os.Args[1] {
 	case "inspect":

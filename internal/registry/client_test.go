@@ -4,11 +4,13 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"net/http/httptest"
+
 	// "strings"
 	"testing"
 	"time"
 
-  // TODO: using v3 ?!!!
+	// TODO: using v3 ?!!!
 	"github.com/distribution/distribution/v3/configuration"
 	reg "github.com/distribution/distribution/v3/registry"
 	_ "github.com/distribution/distribution/v3/registry/storage/driver/inmemory"
@@ -119,3 +121,33 @@ func TestRegistry(t *testing.T) {
 // 	// Ensure we get a 201 Created response
 // 	assert.Equal(t, http.StatusCreated, resp.StatusCode)
 // }
+
+type MockRegistryClient struct {}
+
+type MockRegistry struct {}
+
+func (m *MockRegistry) ServeHTTP(w http.ResponseWriter, r *http.Request) {}
+
+func NewMockRegistry() *MockRegistry {
+  m := &MockRegistry{}
+
+  return m
+}
+
+
+func MockRegistryDeleteManifest(w http.ResponseWriter, r *http.Request) {
+  w.WriteHeader(http.StatusAccepted)
+}
+
+
+func TestDeleteManifest(t *testing.T) {
+  m := NewMockRegistry()
+  s := httptest.NewServer(m)
+  defer s.Close()
+
+
+  http.HandleFunc("/v2/repo/manifests/1", m.ServeHTTP)
+  http.HandleFunc("/v2/repo/manifests/1", MockRegistryDeleteManifest)
+
+  httptest.NewRecorder()
+}
