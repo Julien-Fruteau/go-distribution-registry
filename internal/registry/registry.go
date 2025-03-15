@@ -5,9 +5,12 @@ import (
 	"net/http"
 
 	"github.com/julien-fruteau/go/distctl/internal/env"
+	"github.com/distribution/distribution/v3/manifest/schema2"
 )
 
 var (
+  // NOTE: some media type already present in distribution
+  test = schema2.MediaTypeManifest
 	mime_map = map[string]string{
 		"MIME_V2":                       MIME_V2_MANIFEST,
 		"MIME_V2_LIST":                  MIME_V2_LIST,

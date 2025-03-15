@@ -3,6 +3,10 @@ package registry
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/docker/distribution"
+	"github.com/docker/distribution/manifest/schema2"
+	"github.com/opencontainers/go-digest"
 )
 
 type Repository struct {
@@ -15,6 +19,7 @@ type TagsResponse struct {
 	Tags []string `json:"tags"`
 }
 
+// TODO: use distribution.Manifest and digest.Digest
 type ManifestsResponse struct {
 	SchemaVersion int            `json:"schemaVersion"`
 	MediaType     string         `json:"mediaType"`
@@ -34,6 +39,10 @@ type Platform struct {
 	Os           string `json:"os"`
 }
 
+// TODO: replace by distribution/v3/manifest/schema2.Manifest
+// Correspond to a specific image manifest (to push or get,pull)
+// The manifest info in this case will not have Annotations, nor Platform
+// check https://distribution.github.io/distribution/spec/manifest-v2-2/
 type ManifestResponse struct {
 	SchemaVersion int            `json:"schemaVersion"`
 	MediaType     string         `json:"mediaType"`
@@ -248,3 +257,183 @@ func NewInspectInfo(name string, tagInfo Tag, digest, mediaType string, blobsRes
 		Env:          blobsResp.Config.Env,
 	}
 }
+
+// TODO: inspect is probably wrong above and should have returned this instead : 
+//
+// To retrieve the image configuration (config.json), use:
+//
+// GET /v2/<repository>/blobs/<config_digest>
+//
+// Example Request:
+//
+// curl -H "Authorization: Bearer <token>" \
+//      -H "Accept: application/vnd.oci.image.config.v1+json" \
+//      https://registry.example.com/v2/my-image/blobs/sha256:1649f15
+//
+// package main
+//
+// import (
+// 	"encoding/json"
+// 	"fmt"
+// 	"os"
+// )
+//
+// // ImageConfig represents the config.json structure in Docker/OCI images
+// type ImageConfig struct {
+// 	Architecture string `json:"architecture"`
+// 	OS           string `json:"os"`
+// 	Author       string `json:"author,omitempty"`
+// 	RootFS       struct {
+// 		Type    string   `json:"type"`
+// 		DiffIDs []string `json:"diff_ids"`
+// 	} `json:"rootfs"`
+// 	Config struct {
+// 		Env        []string `json:"Env"`
+// 		Cmd        []string `json:"Cmd"`
+// 		Entrypoint []string `json:"Entrypoint,omitempty"`
+// 		WorkingDir string   `json:"WorkingDir,omitempty"`
+// 		User       string   `json:"User,omitempty"`
+// 	} `json:"config"`
+// 	History []struct {
+// 		Created    string `json:"created"`
+// 		CreatedBy  string `json:"created_by"`
+// 		EmptyLayer bool   `json:"empty_layer,omitempty"`
+// 	} `json:"history"`
+// }
+
+
+
+var j = `{
+ "schemaVersion": 2,
+ "mediaType": "application/vnd.oci.image.manifest.v1+json",
+
+	"config": {
+	  "mediaType": "application/vnd.oci.image.config.v1+json",
+	  "digest": "sha256:1649f157365545ac4b8ec167619fb18d2b61f802776e39e46a8156f39762615e",
+	  "size": 11148
+	},
+
+ "layers": [
+
+	{
+	  "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+	  "digest": "sha256:9d1c7dcd50f5547c998ed553485c4c8ef1bcba72abb1b70c4f7de74572c54278",
+	  "size": 145483495
+	},
+	{
+	  "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+	  "digest": "sha256:b9be66bfe7f92b5c42a47c6353d0dfb1f7b9610a9479752228d5f1fe00c100fc",
+	  "size": 2094433
+	},
+	{
+	  "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+	  "digest": "sha256:08d8d343d6a4c6fb7033d42667d66a88368e95b0f1ee288621dbaf24149d33ca",
+	  "size": 178
+	},
+	{
+	  "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+	  "digest": "sha256:e6c0e3d5828e19ef46e585f10e2af75e11be87f42432301fb92df598d2d2d092",
+	  "size": 477195673
+	},
+	{
+	  "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+	  "digest": "sha256:e8ff69f6858575d6e0a8be832b30716e41bce7379acee914fa91da26533a484a",
+	  "size": 477197575
+	},
+	{
+	  "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+	  "digest": "sha256:107aba61455803961e2bf3981ee15312ff09177dfa623fe785f4759b63afa9a5",
+	  "size": 7267273
+	},
+	{
+	  "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+	  "digest": "sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1",
+	  "size": 32
+	}
+`
+
+
+func (r *Registry) BuildImageManifest() {
+  m := &schema2.Manifest{}
+  m.SchemaVersion = 2
+  m.Config = distribution.Descriptor{
+    MediaType: "application/vnd.oci.image.config.v1+json",
+    Digest: digest.FromBytes([]byte(full_manifest))
+    Size: os.Stat(file)
+  }
+
+
+}
+func (r *Registry) UploadImage() {
+
+}
+// TODO: Upload stuff 
+// 1) build the image manifest : ❓ how to : needs to build the digest algo 
+//  this is schema2.Manifest or ManifestResponse
+// 2) push individual layers 
+// 2.a) POST /v2/<name>/blobs/uploads/
+//  check layer existence with : HEAD /v2/<name>/blobs/<digest> : 200OK means exists (no body)
+// 2.b) is POST ok, get 202 accepted + header Location : /v2/<name>/blobs/uploads/<uuid>
+// 2.c) upload monolitic 
+// PUT /v2/<name>/blobs/uploads/<uuid>?digest=<digest>
+// Content-Length: <size of layer>
+// Content-Type: application/octet-stream
+// <Layer Binary Data>
+// 2.c bis) upload chunck 
+//  PATCH /v2/<name>/blobs/uploads/<uuid>
+//  Content-Length: <size of chunck>
+//  Content-Range: <start>-<end>  
+//  Content-Type: application/octet-stream
+//  < Layer Chunck Binary Data>
+//  When chunck accepted, get 202 with header Range: bytes=0-<offset>
+// 2.c bis part 2) upload the signed manifest
+// PUT /v2/<name>/blobs/uploads/<uuid>?digest=<digest>
+// Content-Length: <size of chunck>
+// Content-Range: <start of range>-<end of range> 
+// Content-Type: application/octet-stream
+// < Last Layer Chunch Binary Data >
+// Get 201 Created if OK
+// 4) when all layers are uploaded, upload image manifest 
+// PUT /v2/<name>/manifests/<reference>
+// Content-Type: <manifest media type>
+// {
+//    "name": <name>,
+//    "tag": <tag>,
+//    "fsLayers": [
+//        {
+//            "blobSum": <digest>
+//        },
+//        ...
+//    ],
+//    "history": <v1 images>,
+//    "signature": <JWS>,
+//    ...
+// }
+
+
+// Cancel upload
+// DELETE /v2/<name>/blobs/uploads/<uuid>
+//
+
+// TODO: Finish deleting stuff
+func (r *Registry) DeleteTag(repository, tag, mediaType string) (bool, http.Header, error) {
+  u := fmt.Sprintf(r.baseUrl+tagsPath, repository)
+	h := r.GetCustomHeader(mediaType)
+  response, respHeaders, err := HttpDo[bool](r.httpClient, http.MethodDelete, u, h, nil)
+  if err != nil {
+    return response, respHeaders, fmt.Errorf("error deleting %s tag:\n%v", tag, err)
+  }
+  return response, respHeaders, nil
+}
+
+//🔥 If a layer is deleted which is referenced by a manifest in the registry, then the complete images will not be resolvable.
+func (r *Registry) DeleteLayer(name, digest, mediaType string) (bool, http.Header, error) {
+  u := fmt.Sprintf(r.baseUrl+blobsPath, digest)
+	h := r.GetCustomHeader(mediaType)
+  response, respHeaders, err := HttpDo[bool](r.httpClient, http.MethodDelete, u, h, nil)
+  if err != nil {
+    return response, respHeaders, fmt.Errorf("error deleting %s blob:\n%v", digest, err)
+  }
+  return response, respHeaders, nil
+}
+
