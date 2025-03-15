@@ -39,7 +39,7 @@ const (
 	MIME_V2_CONFIG      = "application/vnd.docker.container.image.v1+json"
 	MIME_V2_LAYER_GZIP  = "application/vnd.docker.image.rootfs.diff.tar.gzip"
 	MIME_V2_PLUGIN_JSON = "application/vnd.docker.plugin.v1+json"
-	MIME_OCI_INDEX       = "application/vnd.oci.image.index.v1+json"
-	MIME_OCI_MANIFEST    = "application/vnd.oci.image.manifest.v1+json"
+	MIME_OCI_MANIFEST   = "application/vnd.oci.image.manifest.v1+json"
+	MIME_OCI_LIST       = "application/vnd.oci.image.index.v1+json"
 	MIME_OCI_CONFIG     = "application/vnd.oci.image.config.v1+json"
 )

@@ -123,7 +123,7 @@ func (r *Registry) GetTags(repository string) (TagsResponse, http.Header, error)
 
 func (r *Registry) GetManifests(repository, reference string) (ManifestsResponse, http.Header, error) {
 	u := fmt.Sprintf(r.baseUrl+manifestsPath, repository, reference)
-	h := r.GetCustomHeader(fmt.Sprintf(`%s, %s`, MIME_OCI_INDEX, MIME_V2_LIST))
+	h := r.GetCustomHeader(fmt.Sprintf(`%s, %s`, MIME_OCI_LIST, MIME_V2_LIST))
 	response, respHeaders, err := HttpDo[ManifestsResponse](r.httpClient, http.MethodGet, u, h, nil)
 	if err != nil {
 		return response, respHeaders, fmt.Errorf("error getting %s %s manifests:\n%v", repository, reference, err)
