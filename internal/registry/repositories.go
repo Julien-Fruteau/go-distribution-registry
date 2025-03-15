@@ -155,8 +155,9 @@ type TagsResponse struct {
 // }
 
 const (
-	tagsPath     = "%s/tags/list"
-	manifestPath = "%s/manifests/%s"
+	tagsPath      = `%s/tags/list`
+	manifestsPath = `%s/manifests/%s`
+	blobsPath     = `%s/blobs/%s`
 )
 
 // Response Get Tags
