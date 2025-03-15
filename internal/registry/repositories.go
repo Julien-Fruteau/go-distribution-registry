@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/opencontainers/go-digest"
 )
 
 type Repository struct {
@@ -401,20 +403,44 @@ func (r *Registry) UploadImage() {
 // DELETE /v2/<name>/blobs/uploads/<uuid>
 //
 
-// TODO: Finish deleting stuff
-func (r *Registry) DeleteTag(repository, tag, mediaType string) (bool, http.Header, error) {
-	u := fmt.Sprintf(r.baseUrl+tagsPath, repository)
+
+func (r *Registry) DeleteManifest(repository, mediaType string, digest digest.Digest) (bool, error) {
+  // TODO : ? check only mime manifest v2 or oci manifest ?
+	u := fmt.Sprintf(r.baseUrl+manifestsPath, repository)
 	h := r.GetCustomHeader(mediaType)
-	response, respHeaders, err := HttpDo[bool](r.httpClient, http.MethodDelete, u, h, nil)
-	if err != nil {
-		return response, respHeaders, fmt.Errorf("error deleting %s tag:\n%v", tag, err)
-	}
-	return response, respHeaders, nil
+  req, err := GetNewRequest(http.MethodDelete, u, h, nil)
+  if err != nil {
+    return false, fmt.Errorf("error creating request to delete %s manifest:\n%v", digest, err)
+  }
+  resp, err := r.httpClient.Do(req)
+  if err != nil {
+    return false, fmt.Errorf("error deleting %s manifest:\n%v", digest, err)
+  }
+
+  switch resp.StatusCode {
+  case http.StatusAccepted:
+    return true, nil
+  case http.StatusNotFound:
+    return true, nil
+  default:
+    errMsg := fmt.Sprintf("unexpected status code %d returned from delete %s manifest:\n%v", resp.StatusCode, digest, err)
+    defer resp.Body.Close()
+    b, err := io.ReadAll(resp.Body)
+    if err != nil {
+      return false, fmt.Errorf("%s", errMsg)
+    }
+    var respErr RegistryError
+    err = json.Unmarshal(b, &respErr)
+    if err != nil {
+      return false, fmt.Errorf("%s, %s", errMsg, string(b))
+    }
+    return false, fmt.Errorf("%s, %v", errMsg, respErr)
+  }
 }
 
 // 🔥 If a layer is deleted which is referenced by a manifest in the registry, then the complete images will not be resolvable.
 // returns 404 not found (does not exists or already deleted)
-func (r *Registry) DeleteLayer(name, digest, mediaType string) (bool, error) {
+func (r *Registry) DeleteLayer(name, mediaType string, digest digest.Digest) (bool, error) {
 	u := fmt.Sprintf(r.baseUrl+blobsPath, digest)
 	h := r.GetCustomHeader(mediaType)
 	req, err := GetNewRequest(http.MethodDelete, u, h, nil)
