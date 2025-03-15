@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"net/http"
 	"os"
@@ -10,6 +11,9 @@ import (
 )
 
 func main() {
+	output := flag.String("output", "json", "output format: json or raw")
+	flag.Parse()
+
 	httpClient := &http.Client{}
 	registry := registry.NewRegistry()
 	repositories, err := registry.Catalog(httpClient)
@@ -18,17 +22,16 @@ func main() {
 		os.Exit(1)
 	}
 
-  // TODO: choose format :
-  // raw string
-	// fmt.Println(repositories)
+	switch *output {
+	case "json":
+		jsonData, err := json.Marshal(repositories)
+		if err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
 
-  // json
-	jsonData, err := json.Marshal(repositories)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
+		fmt.Fprintln(os.Stdout, string(jsonData))
+	case "raw":
+		fmt.Println(repositories)
 	}
-
-	// Print the JSON data as a string
-	fmt.Fprintln(os.Stdout, string(jsonData))
 }

@@ -115,7 +115,7 @@ func (r *Registry) Catalog(httpClient *http.Client) ([]string, error) {
 			var respErr RegistryError
 			err = json.Unmarshal(body, &respErr)
 			if err != nil {
-				return repositories, fmt.Errorf("%d, error getting catalog: %v", resp.StatusCode, err)
+				return repositories, fmt.Errorf("%d, error getting catalog: %v", resp.StatusCode, body)
 			}
 			return repositories, fmt.Errorf("%d, error getting catalog: %v", resp.StatusCode, respErr)
 		}
