@@ -1,15 +1,18 @@
 package registry
 
+import "net/http"
+
 type Registry struct {
-	BaseUrl     string
-	Conf        Conf
-	HttpHeaders map[string]string
+	baseUrl     string
+	conf        Conf
+	httpHeaders map[string]string
+	httpClient  *http.Client
 }
 
 type Conf struct {
-	Host     string
-	Scheme   string
-	Username string
-	Password string
-	Mime     string
+	host     string
+	scheme   string
+	usename  string
+	password string
+	mime     string
 }

@@ -1,6 +1,8 @@
 package registry
 
 import (
+	"net/http"
+
 	"github.com/julien-fruteau/go/distctl/internal/env"
 	httpUtils "github.com/julien-fruteau/go/distctl/internal/http"
 )
@@ -20,17 +22,18 @@ var (
 func NewRegistry() Registry {
 	return Registry{
 		// Client:     &http.Client{},
-		BaseUrl: scheme + "://" + host + "/v2/",
-		Conf: Conf{
-			Host:     host,
-			Scheme:   scheme,
-			Username: username,
-			Password: password,
-			Mime:     mime,
+		baseUrl: scheme + "://" + host + "/v2/",
+		conf: Conf{
+			host:     host,
+			scheme:   scheme,
+			usename: username,
+			password: password,
+			mime:     mime,
 		},
-		HttpHeaders: map[string]string{
+		httpHeaders: map[string]string{
 			"Accept":        mime,
 			"Authorization": httpUtils.GetBasicAuthHeader(username, password),
 		},
+    httpClient: &http.Client{},
 	}
 }

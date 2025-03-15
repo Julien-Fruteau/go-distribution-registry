@@ -36,17 +36,17 @@ const (
 //	        ...
 //	    ]
 //	}
-func (r *Registry) GetTags(httpClient *http.Client, repository string) ([]string, error) {
+func (r *Registry) GetTags(repository string) ([]string, error) {
 	var tags []string
 
-	u := fmt.Sprintf(r.BaseUrl+tagsPath, repository)
+	u := fmt.Sprintf(r.baseUrl+tagsPath, repository)
 
-	req, err := httpUtils.GetNewRequest(http.MethodGet, u, r.HttpHeaders, nil)
+	req, err := httpUtils.GetNewRequest(http.MethodGet, u, r.httpHeaders, nil)
 	if err != nil {
 		return tags, fmt.Errorf("error creating request: %v", err)
 	}
 
-	resp, err := httpClient.Do(req)
+	resp, err := r.httpClient.Do(req)
 	if err != nil {
 		return tags, fmt.Errorf("error getting tags for %s: %v", repository, err)
 	}

@@ -16,9 +16,9 @@ func main() {
 
 	flag.Parse()
 
-	rs := registry.NewRegistrySvc()
+	r := registry.NewRegistry()
 
-	tags, err := rs.GetTags(*repo)
+	tags, err := r.GetTags(*repo)
 	if err != nil {
 		log.Fatal("error retrieving tags: ", err)
 		os.Exit(1)

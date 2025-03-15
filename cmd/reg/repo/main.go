@@ -14,8 +14,8 @@ func main() {
 	output := flag.String("output", "json", "output format: json or raw")
 	flag.Parse()
 
-	rs := registry.NewRegistrySvc()
-	repositories, err := rs.GetCatalog()
+	r := registry.NewRegistry()
+	repositories, err := r.Catalog()
 	if err != nil {
 		log.Fatal("FATAL error retrieving repositories: ", err)
 		os.Exit(1)
