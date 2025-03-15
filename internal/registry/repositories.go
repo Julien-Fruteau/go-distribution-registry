@@ -405,7 +405,7 @@ func (r *RegistryClient) UploadImage() {
 
 func (r *RegistryClient) DeleteManifest(name string, digest digest.Digest, mediaType string) (bool, error) {
   if err := digest.Validate() ; err != nil {
-    return false, fmt.Errorf("invalid digest: %s", digest)
+    return false, fmt.Errorf("%w: digest %s", ErrInvalidDigest, digest)
   }
 
 	u := fmt.Sprintf(r.baseUrl+manifestsPath, name, digest)
@@ -445,7 +445,7 @@ func (r *RegistryClient) DeleteManifest(name string, digest digest.Digest, media
 // returns 404 not found (does not exists or already deleted)
 func (r *RegistryClient) DeleteLayer(name string, digest digest.Digest, mediaType string) (bool, error) {
   if err := digest.Validate() ; err != nil {
-    return false, fmt.Errorf("invalid digest: %s", digest)
+    return false, fmt.Errorf("%w: digest %s", ErrInvalidDigest, digest)
   }
 
 	u := fmt.Sprintf(r.baseUrl+blobsPath, name, digest)

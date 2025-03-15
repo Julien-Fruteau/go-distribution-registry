@@ -1,5 +1,7 @@
 package registry
 
+import "errors"
+
 type RegistryErrorDetail struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
@@ -10,6 +12,15 @@ type RegistryError struct {
 	Errors []RegistryErrorDetail `json:"errors"`
 }
 
+const (
+  InvalidDigestCode = "error_invalid_digest"
+)
+
+var (
+  ErrInvalidDigest = errors.New(InvalidDigestCode)
+)
+
+
 // 💥 exemple d erreur sur header non supporté
 // HTTP/1.1 404 Not Found
 // Content-Type: application/json; charset=utf-8
@@ -19,3 +30,5 @@ type RegistryError struct {
 // Content-Length: 117
 //
 // {"errors":[{"code":"MANIFEST_UNKNOWN","message":"OCI index found, but accept header does not support OCI indexes"}]}
+//
+//
