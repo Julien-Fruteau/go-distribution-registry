@@ -1,14 +1,10 @@
 package registry
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"regexp"
-
-	httpUtils "github.com/julien-fruteau/go/distctl/internal/http"
 )
 
 const (
@@ -51,75 +47,44 @@ func (r *Registry) Catalog() ([]string, error) {
 	last := ""
 	// regex to parse Link response header
 	re := regexp.MustCompile(`<([^>]+)>`)
+	u := r.baseUrl + catalogPath
 
 	// paginate flow
 	for {
-		req, err := httpUtils.GetNewRequest(
-			http.MethodGet, r.baseUrl+catalogPath, r.httpHeaders, map[string]string{"n": n, "last": last})
-		if err != nil {
-			return repositories, fmt.Errorf("error creating request: %v", err)
-		}
-
-		// req.Header.Set("Accept", r.Conf.Mime)
-		// // req.Header.Set("Accept", "application/vnd.oci.image.index.v1+json")
-		// req.Header.Set("Authorization", httpUtils.GetBasicAuthHeader(r.Conf.Username, r.Conf.Password))
-
-		resp, err := r.httpClient.Do(req)
+		params := map[string]string{"n": n, "last": last}
+		response, h, err := HttpDo[CatalogResponse](r.httpClient, http.MethodGet, u, r.httpHeaders, params)
 		if err != nil {
 			return repositories, fmt.Errorf("error getting catalog: %v", err)
 		}
-		defer resp.Body.Close()
+		repositories = append(repositories, response.Repositories...)
 
-		body, err := io.ReadAll(resp.Body)
+		respLink := h.Get("Link")
+
+		// 📢 if link header is not provided, we reached end of pagination, exit 🚀
+		if respLink == "" {
+			return repositories, nil
+		}
+
+		// 📢 else continue
+		decoded, err := url.QueryUnescape(respLink)
 		if err != nil {
-			return repositories, fmt.Errorf("error reading response: %v", err)
+			return repositories, fmt.Errorf("error decoding url: %v", err)
 		}
 
-		switch resp.StatusCode {
-		case http.StatusOK:
-			var data CatalogResponse
-			err = json.Unmarshal(body, &data)
-			if err != nil {
-				return repositories, fmt.Errorf("error unmarshal response: %v", err)
-			}
+		// Find all matches in the input string
+		matches := re.FindAllStringSubmatch(decoded, -1)
+		lastUrl := matches[0][1]
 
-			repositories = append(repositories, data.Repositories...)
-
-			// 📢 if link header is not provided, we reached end of pagination, exit 🚀
-			respLink := resp.Header.Get("Link")
-			if respLink == "" {
-				return repositories, nil
-			}
-
-			// 📢 else continue
-			decoded, err := url.QueryUnescape(respLink)
-			if err != nil {
-				return repositories, fmt.Errorf("error decoding url: %v", err)
-			}
-
-			// Find all matches in the input string
-			matches := re.FindAllStringSubmatch(decoded, -1)
-			lastUrl := matches[0][1]
-
-			parsedURL, err := url.ParseRequestURI(lastUrl)
-			if err != nil {
-				return repositories, fmt.Errorf("error parsing url: %v", err)
-			}
-
-			// Extract query parameters
-			queryParams := parsedURL.Query()
-
-			// Access individual parameters
-			last = queryParams.Get("last")
-
-		default:
-			var respErr RegistryError
-			err = json.Unmarshal(body, &respErr)
-			if err != nil {
-				return repositories, fmt.Errorf("%d, error getting catalog: %v", resp.StatusCode, string(body))
-			}
-			return repositories, fmt.Errorf("%d, error getting catalog: %v", resp.StatusCode, respErr)
+		parsedURL, err := url.ParseRequestURI(lastUrl)
+		if err != nil {
+			return repositories, fmt.Errorf("error parsing url: %v", err)
 		}
+
+		// Extract query parameters
+		queryParams := parsedURL.Query()
+
+		// Access individual parameters
+		last = queryParams.Get("last")
 
 	}
 }

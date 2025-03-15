@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/julien-fruteau/go/distctl/internal/env"
-	httpUtils "github.com/julien-fruteau/go/distctl/internal/http"
 )
 
 var (
@@ -55,7 +54,7 @@ func NewRegistry() Registry {
 		},
 		httpHeaders: map[string]string{
 			"Accept":        mime,
-			"Authorization": httpUtils.GetBasicAuthHeader(username, password),
+			"Authorization": GetBasicAuthHeader(username, password),
 		},
 		httpClient: &http.Client{},
 	}

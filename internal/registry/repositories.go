@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-
-	httpUtils "github.com/julien-fruteau/go/distctl/internal/http"
 )
 
 type Repository struct {
@@ -20,7 +18,8 @@ type TagsResponse struct {
 }
 
 const (
-	tagsPath = "%s/tags/list"
+	tagsPath     = "%s/tags/list"
+	manifestPath = "%s/manifests/%s"
 )
 
 // Response Get Tags
@@ -38,41 +37,45 @@ const (
 //	}
 func (r *Registry) GetTags(repository string) ([]string, error) {
 	var tags []string
-
 	u := fmt.Sprintf(r.baseUrl+tagsPath, repository)
-
-	req, err := httpUtils.GetNewRequest(http.MethodGet, u, r.httpHeaders, nil)
+	response, _, err := HttpDo[TagsResponse](r.httpClient, http.MethodGet, u, r.httpHeaders, nil)
 	if err != nil {
-		return tags, fmt.Errorf("error creating request: %v", err)
+		return tags, fmt.Errorf("error gettings tags: %v", err)
+	}
+	tags = response.Tags
+	return tags, nil
+}
+
+// TODO : index  manifest, then image manifest with blobs, then ?!.... to retrieve CreatedAt info
+// GetManifest get an image manifest.
+// The name and reference parameter identify the image and are required. The reference may include a tag or digest.
+func (r *Registry) GetManifest(name, reference string) (string, error) {
+	u := fmt.Sprintf(r.baseUrl+manifestPath, name, reference)
+
+	req, err := GetNewRequest(http.MethodGet, u, r.httpHeaders, nil)
+	if err != nil {
+		return "", fmt.Errorf("error creating request: %v", err)
 	}
 
 	resp, err := r.httpClient.Do(req)
 	if err != nil {
-		return tags, fmt.Errorf("error getting tags for %s: %v", repository, err)
+		return "", fmt.Errorf("error getting manifest for %s %s: %v", name, reference, err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return tags, fmt.Errorf("error reading response: %v", err)
+		return "", fmt.Errorf("error reading response: %v", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		var respErr RegistryError
 		err = json.Unmarshal(body, &respErr)
 		if err != nil {
-			return tags, fmt.Errorf("%d, error getting tags: %v", resp.StatusCode, string(body))
+			return "", fmt.Errorf("%d, error getting manifest: %v", resp.StatusCode, string(body))
 		}
-		return tags, fmt.Errorf("%d, error getting tags: %v", resp.StatusCode, respErr)
+		return "", fmt.Errorf("%d, error getting manifest: %v", resp.StatusCode, respErr)
 	}
 
-	var tr TagsResponse
-	err = json.Unmarshal(body, &tr)
-	if err != nil {
-		return tags, fmt.Errorf("error unmarshal response: %v", err)
-	}
-
-	tags = tr.Tags
-
-	return tags, nil
+	return "", nil
 }
