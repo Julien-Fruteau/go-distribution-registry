@@ -403,9 +403,8 @@ func (r *RegistryClient) UploadImage() {
 // DELETE /v2/<name>/blobs/uploads/<uuid>
 //
 
-func (r *RegistryClient) DeleteManifest(repository, mediaType string, digest digest.Digest) (bool, error) {
-	// TODO : ? check only mime manifest v2 or oci manifest ?
-	u := fmt.Sprintf(r.baseUrl+manifestsPath, repository)
+func (r *RegistryClient) DeleteManifest(name string, digest digest.Digest, mediaType string) (bool, error) {
+	u := fmt.Sprintf(r.baseUrl+manifestsPath, name, digest)
 	h := r.GetCustomHeader(mediaType)
 	req, err := GetNewRequest(http.MethodDelete, u, h, nil)
 	if err != nil {
@@ -439,8 +438,8 @@ func (r *RegistryClient) DeleteManifest(repository, mediaType string, digest dig
 
 // 🔥 If a layer is deleted which is referenced by a manifest in the registry, then the complete images will not be resolvable.
 // returns 404 not found (does not exists or already deleted)
-func (r *RegistryClient) DeleteLayer(name, mediaType string, digest digest.Digest) (bool, error) {
-	u := fmt.Sprintf(r.baseUrl+blobsPath, digest)
+func (r *RegistryClient) DeleteLayer(name string, digest digest.Digest, mediaType string) (bool, error) {
+	u := fmt.Sprintf(r.baseUrl+blobsPath, name, digest)
 	h := r.GetCustomHeader(mediaType)
 	req, err := GetNewRequest(http.MethodDelete, u, h, nil)
 	if err != nil {
