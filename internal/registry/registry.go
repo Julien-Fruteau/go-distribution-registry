@@ -40,9 +40,7 @@ type Conf struct {
 	mime     string
 }
 
-//
 // The client should include an Accept header indicating which manifest content types it supports. For more details on the manifest format and content types, see Image Manifest Version 2, Schema 2. In a successful response, the Content-Type header will indicate which manifest type is being returned.
-
 func NewRegistry() Registry {
 	return Registry{
 		// Client:     &http.Client{},
@@ -59,5 +57,14 @@ func NewRegistry() Registry {
 			"Authorization": GetBasicAuthHeader(username, password),
 		},
 		httpClient: &http.Client{},
+	}
+}
+
+// if needing to provide multiple accept header, contatenate
+// them separated by coma
+func (r *Registry) GetCustomHeader(mediaType string) map[string]string {
+	return map[string]string{
+		"Accept":        mediaType,
+		"Authorization": GetBasicAuthHeader(username, password),
 	}
 }
