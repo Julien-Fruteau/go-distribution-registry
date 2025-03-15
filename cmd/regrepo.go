@@ -4,19 +4,18 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"net/http"
 	"os"
 
-	"git.isi.nc/go/dtb-tool/pkg/registry"
+	"git.isi.nc/go/dtb-tool/pkg/client"
 )
 
 func main() {
 	output := flag.String("output", "json", "output format: json or raw")
 	flag.Parse()
 
-	httpClient := &http.Client{}
-	registry := registry.NewRegistry()
-	repositories, err := registry.Catalog(httpClient)
+  cli := client.NewRegistryClient()
+  repositories, err := cli.GetCatalog()
+
 	if err != nil {
 		println(fmt.Errorf("error retrieving repositories: %v", err))
 		os.Exit(1)
