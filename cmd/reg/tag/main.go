@@ -11,19 +11,22 @@ import (
 )
 
 func main() {
-	output := flag.String("output", "json", "output format: json or raw")
+	repo := flag.String("repo", "", "repository name")
+	format := flag.String("format", "json", "output format: json or raw")
+
 	flag.Parse()
 
 	rs := registry.NewRegistrySvc()
-	repositories, err := rs.GetCatalog()
+
+	tags, err := rs.GetTags(*repo)
 	if err != nil {
-		log.Fatal("FATAL error retrieving repositories: ", err)
+		log.Fatal("error retrieving tags: ", err)
 		os.Exit(1)
 	}
 
-	switch *output {
+	switch *format {
 	case "json":
-		jsonData, err := json.Marshal(repositories)
+		jsonData, err := json.Marshal(tags)
 		if err != nil {
 			log.Fatal("FATAL: ", err)
 			return
@@ -31,6 +34,7 @@ func main() {
 
 		fmt.Fprintln(os.Stdout, string(jsonData))
 	case "raw":
-		fmt.Println(repositories)
+		fmt.Println(tags)
 	}
+
 }

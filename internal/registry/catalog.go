@@ -43,7 +43,6 @@ type CatalogResponse struct {
 //   - if provided: last must be used to get the next pagination
 //
 // Next : GET /v2/_catalog?n=<n from the request>&last=<last repository value from previous response>
-//
 func (r *Registry) Catalog(httpClient *http.Client) ([]string, error) {
 	repositories := make([]string, 0)
 	// number of repositories to get per request
@@ -55,14 +54,15 @@ func (r *Registry) Catalog(httpClient *http.Client) ([]string, error) {
 
 	// paginate flow
 	for {
-		req, err := httpUtils.GetNewRequest(http.MethodGet, r.BaseUrl+catalogPath, map[string]string{"n": n, "last": last})
+		req, err := httpUtils.GetNewRequest(
+			http.MethodGet, r.BaseUrl+catalogPath, r.HttpHeaders, map[string]string{"n": n, "last": last})
 		if err != nil {
 			return repositories, fmt.Errorf("error creating request: %v", err)
 		}
 
-		req.Header.Set("Accept", r.Conf.Mime)
-		// req.Header.Set("Accept", "application/vnd.oci.image.index.v1+json")
-		req.Header.Set("Authorization", httpUtils.GetBasicAuthHeader(r.Conf.Username, r.Conf.Password))
+		// req.Header.Set("Accept", r.Conf.Mime)
+		// // req.Header.Set("Accept", "application/vnd.oci.image.index.v1+json")
+		// req.Header.Set("Authorization", httpUtils.GetBasicAuthHeader(r.Conf.Username, r.Conf.Password))
 
 		resp, err := httpClient.Do(req)
 		if err != nil {
@@ -116,7 +116,7 @@ func (r *Registry) Catalog(httpClient *http.Client) ([]string, error) {
 			var respErr RegistryError
 			err = json.Unmarshal(body, &respErr)
 			if err != nil {
-				return repositories, fmt.Errorf("%d, error getting catalog: %v", resp.StatusCode, body)
+				return repositories, fmt.Errorf("%d, error getting catalog: %v", resp.StatusCode, string(body))
 			}
 			return repositories, fmt.Errorf("%d, error getting catalog: %v", resp.StatusCode, respErr)
 		}

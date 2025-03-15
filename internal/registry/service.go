@@ -20,3 +20,7 @@ func (r *RegistrySvc) GetCatalog() ([]string, error){
   return r.registry.Catalog(r.httpClient)
 }
 
+func (r *RegistrySvc) GetTags(repository string) ([]string, error){
+  return r.registry.GetTags(r.httpClient, repository)
+}
+

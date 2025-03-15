@@ -2,6 +2,7 @@ package registry
 
 import (
 	"github.com/julien-fruteau/go/distctl/internal/env"
+	httpUtils "github.com/julien-fruteau/go/distctl/internal/http"
 )
 
 var (
@@ -27,10 +28,9 @@ func NewRegistry() Registry {
 			Password: password,
 			Mime:     mime,
 		},
-		// AuthHeader: getAuthHeader(username, password),
-		// pagination: Pagination{
-		// 	n:    "100",
-		// 	last: "",
-		// },
+		HttpHeaders: map[string]string{
+			"Accept":        mime,
+			"Authorization": httpUtils.GetBasicAuthHeader(username, password),
+		},
 	}
 }

@@ -1,8 +1,9 @@
 package registry
 
 type Registry struct {
-	BaseUrl string
-	Conf    Conf
+	BaseUrl     string
+	Conf        Conf
+	HttpHeaders map[string]string
 }
 
 type Conf struct {
@@ -12,4 +13,3 @@ type Conf struct {
 	Password string
 	Mime     string
 }
-
