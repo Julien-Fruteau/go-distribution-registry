@@ -1,29 +1,36 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
+	"slices"
 
-	"github.com/julien-fruteau/go/distctl/pkg/registry"
+	"github.com/julien-fruteau/go/distctl/internal/k8s"
 )
 
 func main() {
 	output := flag.String("output", "json", "output format: json or raw")
 	flag.Parse()
 
-  rs := registry.NewRegistrySvc()
-  repositories, err := rs.GetCatalog()
-
+	k, err := k8s.NewK8SOutSvc(context.Background())
 	if err != nil {
-		println(fmt.Errorf("error retrieving repositories: %v", err))
-		os.Exit(1)
+		panic(err)
 	}
 
+	images, err := k.GetClusterImages()
+	if err != nil {
+		println(err)
+		os.Exit(1)
+	}
+  slices.Sort(images)
+
+	// fmt.Println(images)
 	switch *output {
 	case "json":
-		jsonData, err := json.Marshal(repositories)
+		jsonData, err := json.Marshal(images)
 		if err != nil {
 			fmt.Println("Error:", err)
 			return
@@ -31,6 +38,6 @@ func main() {
 
 		fmt.Fprintln(os.Stdout, string(jsonData))
 	case "raw":
-		fmt.Println(repositories)
+		fmt.Println(images)
 	}
 }

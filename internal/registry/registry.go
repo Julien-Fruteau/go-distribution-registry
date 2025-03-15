@@ -1,7 +1,7 @@
 package registry
 
 import (
-	"github.com/julien-fruteau/go/distctl/pkg/env"
+	"github.com/julien-fruteau/go/distctl/internal/env"
 )
 
 var (

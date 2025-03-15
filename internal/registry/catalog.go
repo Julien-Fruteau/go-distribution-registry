@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"regexp"
 
-	httpUtils "github.com/julien-fruteau/go/distctl/pkg/http"
+	httpUtils "github.com/julien-fruteau/go/distctl/internal/http"
 )
 
 const (
