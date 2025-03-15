@@ -213,6 +213,10 @@ func (r *Registry) Inspect(name, tag string) ([]InspectInfo, error) {
 		return nil, fmt.Errorf("all inspections failed: %v", errs)
 	}
 
+  if len(errs) > 0 {
+    return inspectInfos, fmt.Errorf("some inspections failed: %v", errs)
+  }
+
 	return inspectInfos, nil
 }
 
