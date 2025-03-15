@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
-	"slices"
 	"sync"
 	"time"
 
@@ -88,11 +87,16 @@ func (k *K8SOutCli) GetClusterImagesV1() ([]string, error) {
 }
 
 func getImagesV1(pods *v1.PodList) []string {
+	imageSet := make(map[string]struct{})
 	var images []string
+
 	for _, pod := range pods.Items {
 		for _, c := range pod.Spec.Containers {
-			if c.Image != "" && !slices.Contains(images, c.Image) {
-				images = append(images, c.Image)
+			if c.Image != "" {
+				if _, exists := imageSet[c.Image]; !exists {
+					imageSet[c.Image] = struct{}{}
+					images = append(images, c.Image)
+				}
 			}
 		}
 	}
