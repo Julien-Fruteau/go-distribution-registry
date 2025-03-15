@@ -34,12 +34,12 @@ package registry
 // application/vnd.oci.image.layer.v1.tar+zstd: "Layer", as a tar archive compressed with zstd
 // application/vnd.oci.empty.v1+json: Empty for unused descriptors
 const (
-	MIME_V2_MANIFEST              = "application/vnd.docker.distribution.manifest.v2+json"
-	MIME_V2_LIST                  = "application/vnd.docker.distribution.manifest.list.v2+json"
-	MIME_V2_CONTAINER_CONFIG_JSON = "application/vnd.docker.container.image.v1+json"
-	MIME_V2_LAYER_GZIP            = "application/vnd.docker.image.rootfs.diff.tar.gzip"
-	MIME_V2_PLUGIN_JSON           = "application/vnd.docker.plugin.v1+json"
-	MIME_V1_INDEX                 = "application/vnd.oci.image.index.v1+json"
-	MIME_V1_MANIFEST              = "application/vnd.oci.image.manifest.v1+json"
-	MIME_V1_CONFIG                = "application/vnd.oci.image.config.v1+json"
+	MIME_V2_MANIFEST    = "application/vnd.docker.distribution.manifest.v2+json"
+	MIME_V2_LIST        = "application/vnd.docker.distribution.manifest.list.v2+json"
+	MIME_V2_CONFIG      = "application/vnd.docker.container.image.v1+json"
+	MIME_V2_LAYER_GZIP  = "application/vnd.docker.image.rootfs.diff.tar.gzip"
+	MIME_V2_PLUGIN_JSON = "application/vnd.docker.plugin.v1+json"
+	MIME_OCI_INDEX       = "application/vnd.oci.image.index.v1+json"
+	MIME_OCI_MANIFEST    = "application/vnd.oci.image.manifest.v1+json"
+	MIME_OCI_CONFIG     = "application/vnd.oci.image.config.v1+json"
 )

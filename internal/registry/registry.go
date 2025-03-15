@@ -14,17 +14,17 @@ var (
 	mime_map = map[string]string{
 		"MIME_V2":                       MIME_V2_MANIFEST,
 		"MIME_V2_LIST":                  MIME_V2_LIST,
-		"MIME_V2_CONTAINER_CONFIG_JSON": MIME_V2_CONTAINER_CONFIG_JSON,
+		"MIME_V2_CONTAINER_CONFIG_JSON": MIME_V2_CONFIG,
 		"MIME_V2_LAYER_GZIP":            MIME_V2_LAYER_GZIP,
 		"MIME_V2_PLUGIN_JSON":           MIME_V2_PLUGIN_JSON,
-		"MIME_V1_INDEX":                 MIME_V1_INDEX,
-		"MIME_V1":                       MIME_V1_MANIFEST,
+		"MIME_V1_INDEX":                 MIME_OCI_INDEX,
+		"MIME_V1":                       MIME_OCI_MANIFEST,
 	}
 	host     = env.GetEnvOrDefault("REG_HOST", "localhost")
 	scheme   = env.GetEnvOrDefault("REG_SCHEME", "http")
 	username = env.GetEnvOrDefault("REG_USER", "admin")
 	password = env.GetEnvOrDefault("REG_PASSWORD", "")
-	mime     = env.GetEnvOrDefault("REG_MIME", fmt.Sprintf("%s, %s, %s, %s", MIME_V2_MANIFEST, MIME_V2_LIST, MIME_V1_INDEX, MIME_V1_MANIFEST))
+	mime     = env.GetEnvOrDefault("REG_MIME", fmt.Sprintf("%s, %s, %s, %s", MIME_V2_MANIFEST, MIME_V2_LIST, MIME_OCI_INDEX, MIME_OCI_MANIFEST))
 	// mime = env.GetEnvOrDefault("REG_MIME", MIME_V2)
 )
 

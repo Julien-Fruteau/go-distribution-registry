@@ -3,10 +3,6 @@ package registry
 import (
 	"fmt"
 	"net/http"
-
-	"github.com/docker/distribution"
-	"github.com/docker/distribution/manifest/schema2"
-	"github.com/opencontainers/go-digest"
 )
 
 type Repository struct {
@@ -50,34 +46,6 @@ type ManifestResponse struct {
 	Layers        []ManifestInfo `json:"layers"`
 }
 
-type BlobsResponse struct {
-	Architecture string    `json:"architecture"`
-	Config       Config    `json:"config"`
-	Created      string    `json:"created"`
-	History      []History `json:"history"`
-	Os           string    `json:"os"`
-	Rootfs       Rootfs    `json:"rootfs"`
-}
-
-type Config struct {
-	User         string            `json:"User"`
-	ExposedPorts map[string]any    `json:"ExposedPorts,omitempty"`
-	Env          []string          `json:"Env,omitempty"`
-	Entrypoint   []string          `json:"Entrypoint,omitempty"`
-	Cmd          []string          `json:"Cmd,omitempty"`
-	WorkingDir   string            `json:"WorkingDir,omitempty"`
-	Labels       map[string]string `json:"Labels,omitempty"`
-	ArgsEscaped  bool              `json:"ArgsEscaped,omitempty"`
-	Shell        []string          `json:"Shell,omitempty"`
-}
-
-type History struct {
-	Created    string `json:"created"`
-	CreatedBy  string `json:"created_by"`
-	Comment    string `json:"comment"`
-	EmptyLayer bool   `json:"empty_layer,omitempty"`
-}
-
 type Rootfs struct {
 	Type    string   `json:"type"`
 	DiffIds []string `json:"diff_ids"`
@@ -108,6 +76,36 @@ type LayerData struct {
 	Size     int    `json:"Size"`
 }
 
+// when doing `inspect`, get blobs/<>/digest content-type config.v1+json (oci),
+// or container.image.v1+json for img manifest v2
+type ConfigInfo struct {
+	Architecture string `json:"architecture"`
+	Author       string `json:"author,omitempty"`
+	Config       struct {
+		User         string            `json:"User,omitempty"`
+		ExposedPorts map[string]any    `json:"ExposedPorts,omitempty"`
+		Env          []string          `json:"Env,omitempty"`
+		Entrypoint   []string          `json:"Entrypoint,omitempty"`
+		Cmd          []string          `json:"Cmd,omitempty"`
+		WorkingDir   string            `json:"WorkingDir,omitempty"`
+		Labels       map[string]string `json:"Labels,omitempty"`
+		ArgsEscaped  bool              `json:"ArgsEscaped,omitempty"`
+		Shell        []string          `json:"Shell,omitempty"`
+	} `json:"config"`
+	Created string `json:"created"`
+	History []struct {
+		Created    string `json:"created"`
+		CreatedBy  string `json:"created_by,omitempty"`
+		Comment    string `json:"comment,omitempty"`
+		EmptyLayer bool   `json:"empty_layer,omitempty"`
+	} `json:"history"`
+	OS     string `json:"os"`
+	RootFS struct {
+		Type    string   `json:"type"`
+		DiffIDs []string `json:"diff_ids"`
+	} `json:"rootfs"`
+}
+
 const (
 	tagsPath      = `%s/tags/list`
 	manifestsPath = `%s/manifests/%s`
@@ -125,7 +123,7 @@ func (r *Registry) GetTags(repository string) (TagsResponse, http.Header, error)
 
 func (r *Registry) GetManifests(repository, reference string) (ManifestsResponse, http.Header, error) {
 	u := fmt.Sprintf(r.baseUrl+manifestsPath, repository, reference)
-	h := r.GetCustomHeader(fmt.Sprintf(`%s, %s`, MIME_V1_INDEX, MIME_V2_LIST))
+	h := r.GetCustomHeader(fmt.Sprintf(`%s, %s`, MIME_OCI_INDEX, MIME_V2_LIST))
 	response, respHeaders, err := HttpDo[ManifestsResponse](r.httpClient, http.MethodGet, u, h, nil)
 	if err != nil {
 		return response, respHeaders, fmt.Errorf("error getting %s %s manifests:\n%v", repository, reference, err)
@@ -143,10 +141,24 @@ func (r *Registry) GetManifest(repository, reference, mediaType string) (Manifes
 	return response, respHeaders, nil
 }
 
-func (r *Registry) GetBlobs(repository, reference, mediaType string) (BlobsResponse, http.Header, error) {
+// ⚠️  might only be ok with content-type config, use with care or prefer configinfo
+// func (r *Registry) GetBlobs(repository, reference, mediaType string) (BlobsResponse, http.Header, error) {
+// 	u := fmt.Sprintf(r.baseUrl+blobsPath, repository, reference)
+// 	h := r.GetCustomHeader(mediaType)
+// 	response, respHeaders, err := HttpDo[BlobsResponse](r.httpClient, http.MethodGet, u, h, nil)
+// 	if err != nil {
+// 		return response, respHeaders, fmt.Errorf("error getting %s %s blobs:\n%v", repository, reference, err)
+// 	}
+// 	return response, respHeaders, nil
+// }
+
+func (r *Registry) ConfigInfo(repository, reference, mediaType string) (ConfigInfo, http.Header, error) {
+	if mediaType != MIME_V2_CONFIG && mediaType != MIME_OCI_CONFIG {
+		return ConfigInfo{}, nil, fmt.Errorf("unexpected media type %s, wants %s or %s", mediaType, MIME_V2_CONFIG, MIME_OCI_CONFIG)
+	}
 	u := fmt.Sprintf(r.baseUrl+blobsPath, repository, reference)
 	h := r.GetCustomHeader(mediaType)
-	response, respHeaders, err := HttpDo[BlobsResponse](r.httpClient, http.MethodGet, u, h, nil)
+	response, respHeaders, err := HttpDo[ConfigInfo](r.httpClient, http.MethodGet, u, h, nil)
 	if err != nil {
 		return response, respHeaders, fmt.Errorf("error getting %s %s blobs:\n%v", repository, reference, err)
 	}
@@ -155,7 +167,8 @@ func (r *Registry) GetBlobs(repository, reference, mediaType string) (BlobsRespo
 
 // get images config info (inspect) from name and tag.
 // returns a list of inspect info, for each manifests found for the tag
-func (r *Registry) Inspect(name, tag string) ([]InspectInfo, error) {
+// inspect info is based on config info + additional image info
+func (r *Registry) InspectCustom(name, tag string) ([]InspectInfo, error) {
 	var inspectInfos []InspectInfo
 	tagsResp, _, err := r.GetTags(name)
 	if err != nil {
@@ -195,13 +208,13 @@ func (r *Registry) Inspect(name, tag string) ([]InspectInfo, error) {
 			mediaType := manifestResp.Config.MediaType
 			digest := manifestResp.Config.Digest
 
-			blobsResp, _, err := r.GetBlobs(name, digest, mediaType)
+			configResp, _, err := r.ConfigInfo(name, digest, mediaType)
 			if err != nil {
 				resChan <- result{err: fmt.Errorf("error getting blobs for %s %s: %v", name, digest, err)}
 				return
 			}
 
-			info := NewInspectInfo(name, tagInfo, digest, mediaType, blobsResp, manifestResp, tagsResp)
+			info := NewInspectInfo(name, tagInfo, digest, mediaType, configResp, manifestResp, tagsResp)
 			resChan <- result{info: info}
 		}(manifest)
 	}
@@ -222,14 +235,14 @@ func (r *Registry) Inspect(name, tag string) ([]InspectInfo, error) {
 		return nil, fmt.Errorf("all inspections failed: %v", errs)
 	}
 
-  if len(errs) > 0 {
-    return inspectInfos, fmt.Errorf("some inspections failed: %v", errs)
-  }
+	if len(errs) > 0 {
+		return inspectInfos, fmt.Errorf("some inspections failed: %v", errs)
+	}
 
 	return inspectInfos, nil
 }
 
-func NewInspectInfo(name string, tagInfo Tag, digest, mediaType string, blobsResp BlobsResponse, manifestResp ManifestResponse, tagsResp TagsResponse) InspectInfo {
+func NewInspectInfo(name string, tagInfo Tag, digest, mediaType string, configResp ConfigInfo, manifestResp ManifestResponse, tagsResp TagsResponse) InspectInfo {
 	// Create layers slice from manifest response
 	layers := make([]string, len(manifestResp.Layers))
 	layersData := make([]LayerData, len(manifestResp.Layers))
@@ -248,152 +261,124 @@ func NewInspectInfo(name string, tagInfo Tag, digest, mediaType string, blobsRes
 		Digest:       digest,
 		Tag:          tagInfo,
 		RepoTags:     tagsResp.Tags,
-		Created:      blobsResp.Created,
-		Labels:       blobsResp.Config.Labels,
-		Architecture: blobsResp.Architecture,
-		Os:           blobsResp.Os,
+		Created:      configResp.Created,
+		Labels:       configResp.Config.Labels,
+		Architecture: configResp.Architecture,
+		Os:           configResp.OS,
 		Layers:       layers,
 		LayersData:   layersData,
-		Env:          blobsResp.Config.Env,
+		Env:          configResp.Config.Env,
 	}
 }
 
-// TODO: inspect is probably wrong above and should have returned this instead : 
+// returns the raw config info (blobs/<>/digest content-type MIME_V2_CONFIG or MIME_OCI_CONFIG)
+func (r *Registry) Inspect(name, tag string) ([]ConfigInfo, error) {
+	var inspectInfos []ConfigInfo
+
+	manifestsResp, respHeaders, err := r.GetManifests(name, tag)
+	if err != nil {
+		return inspectInfos, fmt.Errorf("error getting manifests for %s %s: %v", name, tag, err)
+	}
+
+	tagDigest := respHeaders.Get("Docker-Content-Digest")
+	if tagDigest == "" {
+		return inspectInfos, fmt.Errorf("no digest found for %s %s", name, tag)
+	}
+
+	type result struct {
+		info ConfigInfo
+		err  error
+	}
+	resChan := make(chan result)
+
+	// Launch goroutines
+	for _, manifest := range manifestsResp.Manifests {
+		go func(m ManifestInfo) {
+			manifestResp, _, err := r.GetManifest(name, m.Digest, m.MediaType)
+			if err != nil {
+				resChan <- result{err: fmt.Errorf("error getting manifest for %s %s: %v", name, m.Digest, err)}
+				return
+			}
+
+			mediaType := manifestResp.Config.MediaType
+			digest := manifestResp.Config.Digest
+
+			info, _, err := r.ConfigInfo(name, digest, mediaType)
+			if err != nil {
+				resChan <- result{err: fmt.Errorf("error getting configInfo for %s %s: %v", name, digest, err)}
+				return
+			}
+
+			resChan <- result{info: info}
+		}(manifest)
+	}
+
+	// Collect results
+	var errs []error
+	for range manifestsResp.Manifests {
+		res := <-resChan
+		if res.err != nil {
+			errs = append(errs, res.err)
+			continue
+		}
+		inspectInfos = append(inspectInfos, res.info)
+	}
+
+	// Return error if no successful results
+	if len(inspectInfos) == 0 && len(errs) > 0 {
+		return nil, fmt.Errorf("all inspections failed: %v", errs)
+	}
+
+	if len(errs) > 0 {
+		return inspectInfos, fmt.Errorf("some inspections failed: %v", errs)
+	}
+
+	return inspectInfos, nil
+}
+
+//	func (r *Registry) BuildImageManifest() {
+//	  m := &schema2.Manifest{}
+//	  m.SchemaVersion = 2
+//	  m.Config = distribution.Descriptor{
+//	  	MediaType:   "application/vnd.oci.image.config.v1+json",
+//	  	Size:        os.Stat(file),
+//	  	Digest:      digest.FromBytes([]byte(full_manifest)),
+//	  	URLs:        []string{},
+//	  	Annotations: map[string]string{},
+//	  	Platform:    &v1.Platform{},
+//	  }
 //
-// To retrieve the image configuration (config.json), use:
-//
-// GET /v2/<repository>/blobs/<config_digest>
-//
-// Example Request:
-//
-// curl -H "Authorization: Bearer <token>" \
-//      -H "Accept: application/vnd.oci.image.config.v1+json" \
-//      https://registry.example.com/v2/my-image/blobs/sha256:1649f15
-//
-// package main
-//
-// import (
-// 	"encoding/json"
-// 	"fmt"
-// 	"os"
-// )
-//
-// // ImageConfig represents the config.json structure in Docker/OCI images
-// type ImageConfig struct {
-// 	Architecture string `json:"architecture"`
-// 	OS           string `json:"os"`
-// 	Author       string `json:"author,omitempty"`
-// 	RootFS       struct {
-// 		Type    string   `json:"type"`
-// 		DiffIDs []string `json:"diff_ids"`
-// 	} `json:"rootfs"`
-// 	Config struct {
-// 		Env        []string `json:"Env"`
-// 		Cmd        []string `json:"Cmd"`
-// 		Entrypoint []string `json:"Entrypoint,omitempty"`
-// 		WorkingDir string   `json:"WorkingDir,omitempty"`
-// 		User       string   `json:"User,omitempty"`
-// 	} `json:"config"`
-// 	History []struct {
-// 		Created    string `json:"created"`
-// 		CreatedBy  string `json:"created_by"`
-// 		EmptyLayer bool   `json:"empty_layer,omitempty"`
-// 	} `json:"history"`
 // }
-
-
-
-var j = `{
- "schemaVersion": 2,
- "mediaType": "application/vnd.oci.image.manifest.v1+json",
-
-	"config": {
-	  "mediaType": "application/vnd.oci.image.config.v1+json",
-	  "digest": "sha256:1649f157365545ac4b8ec167619fb18d2b61f802776e39e46a8156f39762615e",
-	  "size": 11148
-	},
-
- "layers": [
-
-	{
-	  "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-	  "digest": "sha256:9d1c7dcd50f5547c998ed553485c4c8ef1bcba72abb1b70c4f7de74572c54278",
-	  "size": 145483495
-	},
-	{
-	  "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-	  "digest": "sha256:b9be66bfe7f92b5c42a47c6353d0dfb1f7b9610a9479752228d5f1fe00c100fc",
-	  "size": 2094433
-	},
-	{
-	  "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-	  "digest": "sha256:08d8d343d6a4c6fb7033d42667d66a88368e95b0f1ee288621dbaf24149d33ca",
-	  "size": 178
-	},
-	{
-	  "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-	  "digest": "sha256:e6c0e3d5828e19ef46e585f10e2af75e11be87f42432301fb92df598d2d2d092",
-	  "size": 477195673
-	},
-	{
-	  "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-	  "digest": "sha256:e8ff69f6858575d6e0a8be832b30716e41bce7379acee914fa91da26533a484a",
-	  "size": 477197575
-	},
-	{
-	  "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-	  "digest": "sha256:107aba61455803961e2bf3981ee15312ff09177dfa623fe785f4759b63afa9a5",
-	  "size": 7267273
-	},
-	{
-	  "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-	  "digest": "sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1",
-	  "size": 32
-	}
-`
-
-
-func (r *Registry) BuildImageManifest() {
-  m := &schema2.Manifest{}
-  m.SchemaVersion = 2
-  m.Config = distribution.Descriptor{
-    MediaType: "application/vnd.oci.image.config.v1+json",
-    Digest: digest.FromBytes([]byte(full_manifest))
-    Size: os.Stat(file)
-  }
-
-
-}
 func (r *Registry) UploadImage() {
-
 }
-// TODO: Upload stuff 
-// 1) build the image manifest : ❓ how to : needs to build the digest algo 
+
+// TODO: Upload stuff
+// 1) build the image manifest : ❓ how to : needs to build the digest algo
 //  this is schema2.Manifest or ManifestResponse
-// 2) push individual layers 
+// 2) push individual layers
 // 2.a) POST /v2/<name>/blobs/uploads/
 //  check layer existence with : HEAD /v2/<name>/blobs/<digest> : 200OK means exists (no body)
 // 2.b) is POST ok, get 202 accepted + header Location : /v2/<name>/blobs/uploads/<uuid>
-// 2.c) upload monolitic 
+// 2.c) upload monolitic
 // PUT /v2/<name>/blobs/uploads/<uuid>?digest=<digest>
 // Content-Length: <size of layer>
 // Content-Type: application/octet-stream
 // <Layer Binary Data>
-// 2.c bis) upload chunck 
+// 2.c bis) upload chunck
 //  PATCH /v2/<name>/blobs/uploads/<uuid>
 //  Content-Length: <size of chunck>
-//  Content-Range: <start>-<end>  
+//  Content-Range: <start>-<end>
 //  Content-Type: application/octet-stream
 //  < Layer Chunck Binary Data>
 //  When chunck accepted, get 202 with header Range: bytes=0-<offset>
 // 2.c bis part 2) upload the signed manifest
 // PUT /v2/<name>/blobs/uploads/<uuid>?digest=<digest>
 // Content-Length: <size of chunck>
-// Content-Range: <start of range>-<end of range> 
+// Content-Range: <start of range>-<end of range>
 // Content-Type: application/octet-stream
 // < Last Layer Chunch Binary Data >
 // Get 201 Created if OK
-// 4) when all layers are uploaded, upload image manifest 
+// 4) when all layers are uploaded, upload image manifest
 // PUT /v2/<name>/manifests/<reference>
 // Content-Type: <manifest media type>
 // {
@@ -410,30 +395,28 @@ func (r *Registry) UploadImage() {
 //    ...
 // }
 
-
 // Cancel upload
 // DELETE /v2/<name>/blobs/uploads/<uuid>
 //
 
 // TODO: Finish deleting stuff
 func (r *Registry) DeleteTag(repository, tag, mediaType string) (bool, http.Header, error) {
-  u := fmt.Sprintf(r.baseUrl+tagsPath, repository)
+	u := fmt.Sprintf(r.baseUrl+tagsPath, repository)
 	h := r.GetCustomHeader(mediaType)
-  response, respHeaders, err := HttpDo[bool](r.httpClient, http.MethodDelete, u, h, nil)
-  if err != nil {
-    return response, respHeaders, fmt.Errorf("error deleting %s tag:\n%v", tag, err)
-  }
-  return response, respHeaders, nil
+	response, respHeaders, err := HttpDo[bool](r.httpClient, http.MethodDelete, u, h, nil)
+	if err != nil {
+		return response, respHeaders, fmt.Errorf("error deleting %s tag:\n%v", tag, err)
+	}
+	return response, respHeaders, nil
 }
 
-//🔥 If a layer is deleted which is referenced by a manifest in the registry, then the complete images will not be resolvable.
+// 🔥 If a layer is deleted which is referenced by a manifest in the registry, then the complete images will not be resolvable.
 func (r *Registry) DeleteLayer(name, digest, mediaType string) (bool, http.Header, error) {
-  u := fmt.Sprintf(r.baseUrl+blobsPath, digest)
+	u := fmt.Sprintf(r.baseUrl+blobsPath, digest)
 	h := r.GetCustomHeader(mediaType)
-  response, respHeaders, err := HttpDo[bool](r.httpClient, http.MethodDelete, u, h, nil)
-  if err != nil {
-    return response, respHeaders, fmt.Errorf("error deleting %s blob:\n%v", digest, err)
-  }
-  return response, respHeaders, nil
+	response, respHeaders, err := HttpDo[bool](r.httpClient, http.MethodDelete, u, h, nil)
+	if err != nil {
+		return response, respHeaders, fmt.Errorf("error deleting %s blob:\n%v", digest, err)
+	}
+	return response, respHeaders, nil
 }
-
