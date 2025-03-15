@@ -1,7 +1,9 @@
 package registry
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -411,12 +413,36 @@ func (r *Registry) DeleteTag(repository, tag, mediaType string) (bool, http.Head
 }
 
 // 🔥 If a layer is deleted which is referenced by a manifest in the registry, then the complete images will not be resolvable.
-func (r *Registry) DeleteLayer(name, digest, mediaType string) (bool, http.Header, error) {
+// returns 404 not found (does not exists or already deleted)
+func (r *Registry) DeleteLayer(name, digest, mediaType string) (bool, error) {
 	u := fmt.Sprintf(r.baseUrl+blobsPath, digest)
 	h := r.GetCustomHeader(mediaType)
-	response, respHeaders, err := HttpDo[bool](r.httpClient, http.MethodDelete, u, h, nil)
+	req, err := GetNewRequest(http.MethodDelete, u, h, nil)
 	if err != nil {
-		return response, respHeaders, fmt.Errorf("error deleting %s blob:\n%v", digest, err)
+		return false, fmt.Errorf("error creating request to delete %s layer:\n%v", digest, err)
 	}
-	return response, respHeaders, nil
+	resp, err := r.httpClient.Do(req)
+	if err != nil {
+		return false, fmt.Errorf("error deleting %s layer:\n%v", digest, err)
+	}
+
+	switch resp.StatusCode {
+	case http.StatusAccepted:
+		return true, nil
+	case http.StatusNotFound:
+		return true, nil
+	default:
+		errMsg := fmt.Sprintf("unexpected status code %d returned from delete %s layer:\n%v", resp.StatusCode, digest, err)
+		defer resp.Body.Close()
+		b, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return false, fmt.Errorf("%s", errMsg)
+		}
+		var respErr RegistryError
+		err = json.Unmarshal(b, &respErr)
+		if err != nil {
+			return false, fmt.Errorf("%s, %s", errMsg, string(b))
+		}
+		return false, fmt.Errorf("%s, %v", errMsg, respErr)
+	}
 }
