@@ -6,15 +6,15 @@ import (
 	"fmt"
 	"os"
 
-	"git.isi.nc/go/dtb-tool/pkg/client"
+	"git.isi.nc/go/dtb-tool/pkg/registry"
 )
 
 func main() {
 	output := flag.String("output", "json", "output format: json or raw")
 	flag.Parse()
 
-  cli := client.NewRegistryClient()
-  repositories, err := cli.GetCatalog()
+  rs := registry.NewRegistrySvc()
+  repositories, err := rs.GetCatalog()
 
 	if err != nil {
 		println(fmt.Errorf("error retrieving repositories: %v", err))
