@@ -27,32 +27,39 @@ func NewMockRegistry(u string) RegistryClient {
 	}
 }
 
-func TestDeleteManifestKOWrongDigest(t *testing.T) {
-  // NOTE: httptest server 
-	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusAccepted) }))
-	defer mockServer.Close()
+func NewTestServer(t testing.TB) *httptest.Server {
+  t.Helper()
+  mux := http.NewServeMux()
+  mux.HandleFunc("/v2/hot/manifests/"+string(digest.FromBytes([]byte("ok"))), func(w http.ResponseWriter, r *http.Request) {
+    w.WriteHeader(http.StatusAccepted)
+  })
+  server := httptest.NewServer(mux)
 
-	cli := NewMockRegistry(mockServer.URL)
-  _, err := cli.DeleteManifest("hot",  "wrong", "potato")
+  t.Cleanup(server.Close)
+  return server
+}
+
+func TestDeleteManifestKOWrongDigest(t *testing.T) {
+  m := NewTestServer(t)
+	cli := NewMockRegistry(m.URL)
+  _, err := cli.DeleteManifest("hot",  "wrong-digest", "")
   assert.ErrorIs(t, err, ErrInvalidDigest )
 }
 
 func TestDeleteManifestOKStatusAccepted(t *testing.T) {
-	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusAccepted) }))
-	defer mockServer.Close()
-
-	cli := NewMockRegistry(mockServer.URL)
-  ok, err := cli.DeleteManifest("hot",  digest.FromBytes([]byte("abc")), "potato")
+  m := NewTestServer(t)
+	cli := NewMockRegistry(m.URL)
+  ok, err := cli.DeleteManifest("hot",  digest.FromBytes([]byte("ok")), "")
   assert.NoError(t, err)
   assert.True(t, ok)
 }
 
 func TestDeleteManifestOKStatusNotFound(t *testing.T) {
-	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNotFound) }))
-	defer mockServer.Close()
-
-	cli := NewMockRegistry(mockServer.URL)
-  ok, err := cli.DeleteManifest("hot",  digest.FromBytes([]byte("abc")), "potato")
+  m := NewTestServer(t)
+	cli := NewMockRegistry(m.URL)
+  // use a valid digest, but does not match any test server handler pattern
+  // the test server returns 404, one may consider to add the endpoint and return 404
+  ok, err := cli.DeleteManifest("hot",  digest.FromBytes([]byte("not-found")), "")
   assert.NoError(t, err)
   assert.True(t, ok)
 }
