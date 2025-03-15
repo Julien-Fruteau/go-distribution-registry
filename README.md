@@ -17,3 +17,5 @@ Target :
 - [ ] then a registry garbage collect should be called/executed
   NB: since current v2 is buggy, consider doing it manually
   while v3 is officially released
+
+- [ ] split go-distriubution-registry and go-kubernetes-client as 2 libs and make an app from both lib targeting purpose
