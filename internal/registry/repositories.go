@@ -404,12 +404,17 @@ func (r *RegistryClient) UploadImage() {
 //
 
 func (r *RegistryClient) DeleteManifest(name string, digest digest.Digest, mediaType string) (bool, error) {
+  if err := digest.Validate() ; err != nil {
+    return false, fmt.Errorf("invalid digest: %s", digest)
+  }
+
 	u := fmt.Sprintf(r.baseUrl+manifestsPath, name, digest)
 	h := r.GetCustomHeader(mediaType)
 	req, err := GetNewRequest(http.MethodDelete, u, h, nil)
 	if err != nil {
 		return false, fmt.Errorf("error creating request to delete %s manifest:\n%v", digest, err)
 	}
+
 	resp, err := r.httpClient.Do(req)
 	if err != nil {
 		return false, fmt.Errorf("error deleting %s manifest:\n%v", digest, err)
@@ -439,6 +444,10 @@ func (r *RegistryClient) DeleteManifest(name string, digest digest.Digest, media
 // 🔥 If a layer is deleted which is referenced by a manifest in the registry, then the complete images will not be resolvable.
 // returns 404 not found (does not exists or already deleted)
 func (r *RegistryClient) DeleteLayer(name string, digest digest.Digest, mediaType string) (bool, error) {
+  if err := digest.Validate() ; err != nil {
+    return false, fmt.Errorf("invalid digest: %s", digest)
+  }
+
 	u := fmt.Sprintf(r.baseUrl+blobsPath, name, digest)
 	h := r.GetCustomHeader(mediaType)
 	req, err := GetNewRequest(http.MethodDelete, u, h, nil)
