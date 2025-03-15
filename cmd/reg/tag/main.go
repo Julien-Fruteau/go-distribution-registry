@@ -18,7 +18,7 @@ func main() {
 
 	r := registry.NewRegistry()
 
-	tags, err := r.GetTags(*repo)
+	tags, _, err := r.GetTags(*repo)
 	if err != nil {
 		log.Fatal("error retrieving tags: ", err)
 		os.Exit(1)
