@@ -28,3 +28,9 @@ func GetNewRequest(method string, u string, params map[string]string) (*http.Req
 
 	return req, nil
 }
+
+func SetRequestHeader(request *http.Request, headers map[string]string) {
+  for k, v := range headers {
+    request.Header.Set(k, v)
+  }
+}

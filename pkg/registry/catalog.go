@@ -43,43 +43,39 @@ type CatalogResponse struct {
 //   - if provided: last must be used to get the next pagination
 //
 // Next : GET /v2/_catalog?n=<n from the request>&last=<last repository value from previous response>
-func (r *Registry) Catalog(httpCli *http.Client) ([]string, error) {
+func (r *Registry) Catalog(httpClient *http.Client) ([]string, error) {
 	repositories := make([]string, 0)
 	// number of repositories to get per request
 	n := "100"
 	// used to retrieve last repository name from Link response header
 	last := ""
+	// regex to parse Link response header
+	re := regexp.MustCompile(`<([^>]+)>`)
 
 	// paginate flow
 	for {
-		req, err := httpUtils.GetNewRequest("GET", r.BaseUrl+catalogPath, map[string]string{"n": n, "last": last})
+		req, err := httpUtils.GetNewRequest(http.MethodGet, r.BaseUrl+catalogPath, map[string]string{"n": n, "last": last})
 		if err != nil {
 			return repositories, fmt.Errorf("error creating request: %v", err)
 		}
 
-		req.Header.Set("Accept", "application/vnd.oci.image.index.v1+json")
-		req.Header.Add("Authorization", httpUtils.GetBasicAuthHeader(r.Conf.Username, r.Conf.Password))
+		req.Header.Set("Accept", r.Conf.Mime)
+		// req.Header.Set("Accept", "application/vnd.oci.image.index.v1+json")
+		req.Header.Set("Authorization", httpUtils.GetBasicAuthHeader(r.Conf.Username, r.Conf.Password))
 
-		resp, err := httpCli.Do(req)
+		resp, err := httpClient.Do(req)
 		if err != nil {
 			return repositories, fmt.Errorf("error getting catalog: %v", err)
 		}
 		defer resp.Body.Close()
 
-    // 🙋 📢 here !!
-    // switch resp.StatusCode {
-    // case http.StatusOK:
-    //
-    // default:
-    //
-    // }
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return repositories, fmt.Errorf("error reading response: %v", err)
+		}
 
-		if resp.StatusCode == http.StatusOK {
-			body, err := io.ReadAll(resp.Body)
-			if err != nil {
-				return repositories, fmt.Errorf("error reading response: %v", err)
-			}
-
+		switch resp.StatusCode {
+		case http.StatusOK:
 			var data CatalogResponse
 			err = json.Unmarshal(body, &data)
 			if err != nil {
@@ -88,18 +84,17 @@ func (r *Registry) Catalog(httpCli *http.Client) ([]string, error) {
 
 			repositories = append(repositories, data.Repositories...)
 
-      // 📢 if link header is not provided, we reached end of pagination
+			// 📢 if link header is not provided, we reached end of pagination, exit
 			respLink := resp.Header.Get("Link")
 			if respLink == "" {
-				break
+				return repositories, nil
 			}
 
+			// else continue
 			decoded, err := url.QueryUnescape(respLink)
 			if err != nil {
 				return repositories, fmt.Errorf("error decoding url: %v", err)
 			}
-
-			re := regexp.MustCompile(`<([^>]+)>`)
 
 			// Find all matches in the input string
 			matches := re.FindAllStringSubmatch(decoded, -1)
@@ -115,10 +110,15 @@ func (r *Registry) Catalog(httpCli *http.Client) ([]string, error) {
 
 			// Access individual parameters
 			last = queryParams.Get("last")
-			// fmt.Println("Last value:", last)
 
+		default:
+			var respErr RegistryError
+			err = json.Unmarshal(body, &respErr)
+			if err != nil {
+				return repositories, fmt.Errorf("%d, error getting catalog: %v", resp.StatusCode, err)
+			}
+			return repositories, fmt.Errorf("%d, error getting catalog: %v", resp.StatusCode, respErr)
 		}
-	}
 
-	return repositories, nil
+	}
 }
