@@ -20,9 +20,10 @@ func main() {
 		panic(err)
 	}
 
-	images, err := k.GetClusterImages()
+	images, err := k.GetClusterImagesV1()
+	// images, err := k.GetClusterImagesV2()
 	if err != nil {
-		println(err)
+    fmt.Println(err)
 		os.Exit(1)
 	}
 	slices.Sort(images)

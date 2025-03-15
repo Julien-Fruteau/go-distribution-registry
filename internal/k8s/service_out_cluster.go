@@ -5,6 +5,7 @@ import (
 	"errors"
 	"path/filepath"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/julien-fruteau/go/distctl/internal/env"
@@ -45,10 +46,6 @@ func getKubeConfig() (string, error) {
 func NewK8SOutCli(ctx context.Context) (*K8SOutCli, error) {
 	k := &K8SOutCli{}
 
-	// 📢 TODO understand context, and
-	// 📢 use parent context and allow some SIG TERM ctrl-c and so on
-	// 📢 apply this to registry service too, so that all
-	// 📢 can be cancelled
 	if ctx != nil {
 		k.ctx = ctx
 	} else {
@@ -76,18 +73,9 @@ func NewK8SOutCli(ctx context.Context) (*K8SOutCli, error) {
 	return k, nil
 }
 
-// RETRIEVE CLUSTER IMAGES IN ORDER TO NOT DELETE THOSE IMAGES
-
-// func (k *K8SOutSvc) GetClusterImages() ([]Image, error) {
-func (k *K8SOutCli) GetClusterImages() ([]string, error) {
+// retrieve cluster images in order to not delete those images
+func (k *K8SOutCli) GetClusterImagesV1() ([]string, error) {
 	var images []string
-	// var images []Image
-
-	//  func slowOperationWithTimeout(ctx context.Context) (Result, error) {
-	// 	ctx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
-	// 	defer cancel()  // releases resources if slowOperation completes before timeout elapses
-	// 	return slowOperation(ctx)
-	// }
 
 	ctx, cancel := context.WithTimeout(k.ctx, DEFAULT_TIMEOUT*time.Second)
 	defer cancel() // releases resources if slowOperation completes before timeout elapses
@@ -96,14 +84,6 @@ func (k *K8SOutCli) GetClusterImages() ([]string, error) {
 	if err != nil {
 		return images, err
 	}
-
-	// select {
-	// case <-k.ctx.Done():
-	// 	return images, k.ctx.Err()
-	// case res := <-data:
-	// 	return res, nil
-	// }
-
 	return getImagesV1(pods), nil
 }
 
@@ -119,28 +99,108 @@ func getImagesV1(pods *v1.PodList) []string {
 	return images
 }
 
-// func getImagesV2(pods *v1.PodList) []string {
-// 	// var images []string
-//   images := slices.Map(pods.Items, func(pod v1.Pod) string {
-//     return slices.Map(pod.Spec.Containers, func(c v1.Container) string { return c.Image })
-//   })
-// 	return images
-// }
-
 // 📢 READ https://go.dev/blog/pipelines 🛫
 
-// Stream generates values with DoSomething and sends them to out
-// until DoSomething returns an error or ctx.Done is closed.
-// func Stream(ctx context.Context, out chan<- Value) error {
-// 	for {
-// 		v, err := DoSomething(ctx)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		select {
-// 		case <-ctx.Done():
-// 			return ctx.Err()
-// 		case out <- v:
-// 		}
-// 	}
-// }
+func (k *K8SOutCli) GetClusterImagesV2() ([]string, error) {
+	ctx, cancel := context.WithTimeout(k.ctx, DEFAULT_TIMEOUT*time.Second)
+	defer cancel()
+
+	// Create pod channel
+	podChan := make(chan v1.Pod)
+
+	// Start pod streaming in a goroutine
+	go func() {
+		defer close(podChan)
+
+		// List pods in chunks using continue token
+		var continueToken string
+		for {
+			pods, err := k.clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{
+				Limit:    100, // Process pods in smaller batches
+				Continue: continueToken,
+			})
+			if err != nil {
+				return
+			}
+
+			// Stream each pod
+			for i := range pods.Items {
+				select {
+				case <-ctx.Done():
+					return
+				case podChan <- pods.Items[i]:
+				}
+			}
+
+			// Check if we've processed all pods
+			continueToken = pods.Continue
+			if continueToken == "" {
+				return
+			}
+		}
+	}()
+
+	return getImagesV2(podChan), nil
+}
+
+func getImagesV2(podChan <-chan v1.Pod) []string {
+	imageSet := make(map[string]struct{})
+
+	// Process each pod as it arrives
+	for pod := range podChan {
+		for _, container := range pod.Spec.Containers {
+			if container.Image != "" {
+				imageSet[container.Image] = struct{}{}
+			}
+		}
+	}
+
+	// Convert map to slice
+	images := make([]string, 0, len(imageSet))
+	for image := range imageSet {
+		images = append(images, image)
+	}
+
+	return images
+}
+
+func (k *K8SOutCli) GetImagesV3(pods *v1.PodList) []string {
+	// Use a map for O(1) lookups to avoid duplicates
+	imageSet := make(map[string]struct{})
+
+	// Process containers from all pods concurrently
+	ch := make(chan string)
+	var wg sync.WaitGroup
+
+	// Launch goroutine for each pod
+	for i := range pods.Items {
+		wg.Add(1)
+		go func(pod *v1.Pod) {
+			defer wg.Done()
+			for _, container := range pod.Spec.Containers {
+				if container.Image != "" {
+					ch <- container.Image
+				}
+			}
+		}(&pods.Items[i])
+	}
+
+	// Close channel when all goroutines complete
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+
+	// Collect unique images
+	for image := range ch {
+		imageSet[image] = struct{}{}
+	}
+
+	// Convert map keys to slice
+	images := make([]string, 0, len(imageSet))
+	for image := range imageSet {
+		images = append(images, image)
+	}
+
+	return images
+}
