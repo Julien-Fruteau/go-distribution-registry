@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"git.isi.nc/go/dtb-tool/pkg/registry"
+	"github.com/julien-fruteau/go/distctl/pkg/registry"
 )
 
 func main() {

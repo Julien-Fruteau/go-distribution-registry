@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"regexp"
 
-	httpUtils "git.isi.nc/go/dtb-tool/pkg/http"
+	httpUtils "github.com/julien-fruteau/go/distctl/pkg/http"
 )
 
 const (
@@ -43,6 +43,7 @@ type CatalogResponse struct {
 //   - if provided: last must be used to get the next pagination
 //
 // Next : GET /v2/_catalog?n=<n from the request>&last=<last repository value from previous response>
+//
 func (r *Registry) Catalog(httpClient *http.Client) ([]string, error) {
 	repositories := make([]string, 0)
 	// number of repositories to get per request
@@ -84,13 +85,13 @@ func (r *Registry) Catalog(httpClient *http.Client) ([]string, error) {
 
 			repositories = append(repositories, data.Repositories...)
 
-			// 📢 if link header is not provided, we reached end of pagination, exit
+			// 📢 if link header is not provided, we reached end of pagination, exit 🚀
 			respLink := resp.Header.Get("Link")
 			if respLink == "" {
 				return repositories, nil
 			}
 
-			// else continue
+			// 📢 else continue
 			decoded, err := url.QueryUnescape(respLink)
 			if err != nil {
 				return repositories, fmt.Errorf("error decoding url: %v", err)

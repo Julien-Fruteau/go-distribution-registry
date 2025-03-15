@@ -1,24 +1,11 @@
 package registry
 
 import (
-	"git.isi.nc/go/dtb-tool/pkg/env"
+	"github.com/julien-fruteau/go/distctl/pkg/env"
 )
 
-type Registry struct {
-	BaseUrl string
-	Conf    Conf
-}
-
-type Conf struct {
-	Host     string
-	Scheme   string
-	Username string
-	Password string
-	Mime     string
-}
-
 var (
-	host     = env.GetEnvOrDefault("REGISTRY_HOST", "dkr.isi")
+	host     = env.GetEnvOrDefault("REGISTRY_HOST", "localhost")
 	scheme   = env.GetEnvOrDefault("REGISTRY_SCHEME", "http")
 	username = env.GetEnvOrDefault("REGISTRY_USER", "admin")
 	password = env.GetEnvOrDefault("REGISTRY_PASSWORD", "")

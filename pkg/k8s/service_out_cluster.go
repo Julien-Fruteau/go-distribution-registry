@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"time"
 
-	"git.isi.nc/go/dtb-tool/pkg/env"
+	"github.com/julien-fruteau/go/distctl/pkg/env"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -80,14 +81,34 @@ func NewK8SOutSvc(ctx context.Context) (*K8SOutSvc, error) {
 func (k *K8SOutSvc) GetClusterImages() ([]Image, error) {
 	var images []Image
 
-	select {
-	case <-k.ctx.Done():
-		return images, k.ctx.Err()
-	case res := <-data:
-		return res, nil
-	}
+	//  func slowOperationWithTimeout(ctx context.Context) (Result, error) {
+	// 	ctx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
+	// 	defer cancel()  // releases resources if slowOperation completes before timeout elapses
+	// 	return slowOperation(ctx)
+	// }
 
-	pods, err := k.clientset.CoreV1().Pods("").List(k.ctx, metav1.ListOptions{})
+  ctx, cancel := context.WithTimeout(k.ctx, 30 * time.Second)
+  defer cancel()  // releases resources if slowOperation completes before timeout elapses
+
+  pods, err := k.clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
+  if err != nil {
+    return images, err
+  }
+
+  for i, pod := range pods.Items {
+    for _, c := range pod.Spec.Containers {
+      image:=c.Image
+      images = append(images, Image{})
+    }
+  }
+
+	// select {
+	// case <-k.ctx.Done():
+	// 	return images, k.ctx.Err()
+	// case res := <-data:
+	// 	return res, nil
+	// }
+
 
 	return images, nil
 }
