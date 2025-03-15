@@ -1,5 +1,5 @@
 package k8s
 
 const (
-  DEFAULT_TIMEOUT = 30
+	DEFAULT_TIMEOUT = 30
 )

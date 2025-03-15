@@ -1,7 +1,4 @@
 package k8s
 
-
-type K8SSvc interface {
-
+type K8SCli interface {
 }
-

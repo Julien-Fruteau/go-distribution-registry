@@ -15,7 +15,7 @@ func main() {
 	output := flag.String("output", "json", "output format: json or raw")
 	flag.Parse()
 
-	k, err := k8s.NewK8SOutSvc(context.Background())
+	k, err := k8s.NewK8SOutCli(context.Background())
 	if err != nil {
 		panic(err)
 	}
@@ -25,7 +25,7 @@ func main() {
 		println(err)
 		os.Exit(1)
 	}
-  slices.Sort(images)
+	slices.Sort(images)
 
 	// fmt.Println(images)
 	switch *output {

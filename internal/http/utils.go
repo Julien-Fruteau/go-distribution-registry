@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"net/http"
 	"net/url"
-
 )
 
 func GetBasicAuthHeader(username, password string) string {
@@ -27,10 +26,9 @@ func GetNewRequest(method string, u string, headers map[string]string, params ma
 
 	req.URL.RawQuery = values.Encode()
 
-
-  for k, v := range headers {
-    req.Header.Set(k, v)
-  }
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
 
 	return req, nil
 }

@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
-type K8SOutSvc struct {
+type K8SOutCli struct {
 	ctx       context.Context
 	clientset *kubernetes.Clientset
 }
@@ -42,8 +42,8 @@ func getKubeConfig() (string, error) {
 // using kubeconfig from env var KUBE_CONFIG (expect file path)
 // or trying to find $HOME/.kube/config
 // returns a new service with a clientset to interact with k8s
-func NewK8SOutSvc(ctx context.Context) (*K8SOutSvc, error) {
-	k := &K8SOutSvc{}
+func NewK8SOutCli(ctx context.Context) (*K8SOutCli, error) {
+	k := &K8SOutCli{}
 
 	// 📢 TODO understand context, and
 	// 📢 use parent context and allow some SIG TERM ctrl-c and so on
@@ -79,7 +79,7 @@ func NewK8SOutSvc(ctx context.Context) (*K8SOutSvc, error) {
 // RETRIEVE CLUSTER IMAGES IN ORDER TO NOT DELETE THOSE IMAGES
 
 // func (k *K8SOutSvc) GetClusterImages() ([]Image, error) {
-func (k *K8SOutSvc) GetClusterImages() ([]string, error) {
+func (k *K8SOutCli) GetClusterImages() ([]string, error) {
 	var images []string
 	// var images []Image
 

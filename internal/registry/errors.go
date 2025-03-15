@@ -10,7 +10,6 @@ type RegistryError struct {
 	Errors []RegistryErrorDetail `json:"errors"`
 }
 
-
 // 💥 exemple d erreur sur header non supporté
 // HTTP/1.1 404 Not Found
 // Content-Type: application/json; charset=utf-8
