@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"net/http/httptest"
 
 	// "strings"
 	"testing"
@@ -122,32 +121,3 @@ func TestRegistry(t *testing.T) {
 // 	assert.Equal(t, http.StatusCreated, resp.StatusCode)
 // }
 
-type MockRegistryClient struct {}
-
-type MockRegistry struct {}
-
-func (m *MockRegistry) ServeHTTP(w http.ResponseWriter, r *http.Request) {}
-
-func NewMockRegistry() *MockRegistry {
-  m := &MockRegistry{}
-
-  return m
-}
-
-
-func MockRegistryDeleteManifest(w http.ResponseWriter, r *http.Request) {
-  w.WriteHeader(http.StatusAccepted)
-}
-
-
-func TestDeleteManifest(t *testing.T) {
-  m := NewMockRegistry()
-  s := httptest.NewServer(m)
-  defer s.Close()
-
-
-  http.HandleFunc("/v2/repo/manifests/1", m.ServeHTTP)
-  http.HandleFunc("/v2/repo/manifests/1", MockRegistryDeleteManifest)
-
-  httptest.NewRecorder()
-}
