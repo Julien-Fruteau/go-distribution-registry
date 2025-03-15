@@ -1,9 +1,7 @@
 package registry
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 )
 
@@ -153,6 +151,64 @@ type TagsResponse struct {
 //     ]
 //   }
 // }
+type ManifestsResponse struct {
+	SchemaVersion int            `json:"schemaVersion"`
+	MediaType     string         `json:"mediaType"`
+	Manifests     []ManifestInfo `json:"manifests"`
+}
+
+type ManifestInfo struct {
+	MediaType   string            `json:"mediaType"`
+	Digest      string            `json:"digest"`
+	Size        int               `json:"size"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+	Platform    Platform          `json:"platform,omitempty"`
+}
+
+type Platform struct {
+	Architecture string `json:"architecture"`
+	Os           string `json:"os"`
+}
+
+type ManifestResponse struct {
+	SchemaVersion int            `json:"schemaVersion"`
+	MediaType     string         `json:"mediaType"`
+	Config        ManifestInfo   `json:"config"`
+	Layers        []ManifestInfo `json:"layers"`
+}
+
+type BlobsResponse struct {
+	Architecture string    `json:"architecture"`
+	Config       Config    `json:"config"`
+	Created      string    `json:"created"`
+	History      []History `json:"history"`
+	Os           string    `json:"os"`
+	Rootfs       Rootfs    `json:"rootfs"`
+}
+
+type Config struct {
+	User         string                 `json:"User"`
+	ExposedPorts map[string]interface{} `json:"ExposedPorts,omitempty"`
+	Env          []string               `json:"Env,omitempty"`
+	Entrypoint   []string               `json:"Entrypoint,omitempty"`
+	Cmd          []string               `json:"Cmd,omitempty"`
+	WorkingDir   string                 `json:"WorkingDir,omitempty"`
+	Labels       map[string]string      `json:"Labels,omitempty"`
+	ArgsEscaped  bool                   `json:"ArgsEscaped,omitempty"`
+	Shell        []string               `json:"Shell,omitempty"`
+}
+
+type History struct {
+	Created    string `json:"created"`
+	CreatedBy  string `json:"created_by"`
+	Comment    string `json:"comment"`
+	EmptyLayer bool   `json:"empty_layer,omitempty"`
+}
+
+type Rootfs struct {
+	Type    string   `json:"type"`
+	DiffIds []string `json:"diff_ids"`
+}
 
 const (
 	tagsPath      = `%s/tags/list`
@@ -160,28 +216,43 @@ const (
 	blobsPath     = `%s/blobs/%s`
 )
 
-// Response Get Tags
-// -----------------
-//
-// 200 OK
-// Content-Type: application/json
-//
-//	{
-//	    "name": <name>,
-//	    "tags": [
-//	        <tag>,
-//	        ...
-//	    ]
-//	}
-func (r *Registry) GetTags(repository string) ([]string, error) {
-	var tags []string
+func (r *Registry) GetTags(repository string) (TagsResponse, error) {
 	u := fmt.Sprintf(r.baseUrl+tagsPath, repository)
 	response, _, err := HttpDo[TagsResponse](r.httpClient, http.MethodGet, u, r.httpHeaders, nil)
 	if err != nil {
-		return tags, fmt.Errorf("error gettings tags: %v", err)
+		return response, fmt.Errorf("error getting %s tags:\n%v", repository, err)
 	}
-	tags = response.Tags
-	return tags, nil
+	return response, nil
+}
+
+func (r *Registry) GetManifests(repository, reference string) (ManifestsResponse, error) {
+	u := fmt.Sprintf(r.baseUrl+manifestsPath, repository, reference)
+	h := r.GetCustomHeader(fmt.Sprintf(`%s, %s`, MIME_V1_INDEX, MIME_V2_LIST))
+	response, _, err := HttpDo[ManifestsResponse](r.httpClient, http.MethodGet, u, h, nil)
+	if err != nil {
+		return response, fmt.Errorf("error getting %s %s manifests:\n%v", repository, reference, err)
+	}
+	return response, nil
+}
+
+func (r *Registry) GetManifest(repository, reference, mediaType string) (ManifestResponse, error) {
+	u := fmt.Sprintf(r.baseUrl+manifestsPath, repository, reference)
+	h := r.GetCustomHeader(mediaType)
+	response, _, err := HttpDo[ManifestResponse](r.httpClient, http.MethodGet, u, h, nil)
+	if err != nil {
+		return response, fmt.Errorf("error getting %s %s manifest:\n%v", repository, reference, err)
+	}
+	return response, nil
+}
+
+func (r *Registry) GetBlobs(repository, reference, mediaType string) (BlobsResponse, error) {
+	u := fmt.Sprintf(r.baseUrl+blobsPath, repository, reference)
+	h := r.GetCustomHeader(mediaType)
+	response, _, err := HttpDo[BlobsResponse](r.httpClient, http.MethodGet, u, h, nil)
+	if err != nil {
+		return response, fmt.Errorf("error getting %s %s blobs:\n%v", repository, reference, err)
+	}
+	return response, nil
 }
 
 // WARNING: quetion remains about the 2 firsts 1st mediaType to use,
