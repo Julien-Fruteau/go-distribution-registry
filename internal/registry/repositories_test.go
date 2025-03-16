@@ -30,7 +30,9 @@ func NewMockRegistry(u string) RegistryClient {
 func NewTestServer(t testing.TB) *httptest.Server {
   t.Helper()
   mux := http.NewServeMux()
-  mux.HandleFunc("/v2/hot/manifests/"+string(digest.FromBytes([]byte("ok"))), func(w http.ResponseWriter, r *http.Request) {
+  mux.HandleFunc("DELETE /v2/{name}/manifests/"+string(digest.FromBytes([]byte("ok"))), func(w http.ResponseWriter, r *http.Request) {
+    // NOTE: accessing a wildcard value : https://pkg.go.dev/net/http#ServeMux (patterns)
+    // w.Write([]byte(r.PathValue("name")))
     w.WriteHeader(http.StatusAccepted)
   })
   server := httptest.NewServer(mux)
