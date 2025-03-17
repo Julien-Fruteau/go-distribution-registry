@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/distribution/distribution/v3/manifest/schema2"
-	"github.com/julien-fruteau/go/distctl/internal/env"
+	"github.com/julien-fruteau/go-distribution-registry/internal/env"
 )
 
 var (

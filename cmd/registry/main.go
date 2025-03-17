@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/julien-fruteau/go/distctl/internal/registry"
+	"github.com/julien-fruteau/go-distribution-registry/external/registry"
 	"github.com/spf13/pflag"
 	"gopkg.in/yaml.v2"
 )

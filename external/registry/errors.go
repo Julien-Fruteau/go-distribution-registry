@@ -5,7 +5,7 @@ import "errors"
 type RegistryErrorDetail struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
-	Detail  string `json:"detail"`
+	Detail  any    `json:"detail"`
 }
 
 type RegistryError struct {
@@ -13,13 +13,10 @@ type RegistryError struct {
 }
 
 const (
-  InvalidDigestCode = "error_invalid_digest"
+	InvalidDigestCode = "error_invalid_digest"
 )
 
-var (
-  ErrInvalidDigest = errors.New(InvalidDigestCode)
-)
-
+var ErrInvalidDigest = errors.New(InvalidDigestCode)
 
 // 💥 exemple d erreur sur header non supporté
 // HTTP/1.1 404 Not Found

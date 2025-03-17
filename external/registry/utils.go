@@ -68,7 +68,7 @@ func HttpDo[T any](client *http.Client, method, path string, headers, params map
 		if err != nil {
 			return response, respHeaders, fmt.Errorf("%d, error getting response: %v", resp.StatusCode, string(body))
 		}
-		return response, respHeaders, fmt.Errorf("%d, error getting response: %v", resp.StatusCode, respErr)
+		return response, respHeaders, fmt.Errorf("%d: %v", resp.StatusCode, respErr)
 	}
 
 	err = json.Unmarshal(body, &response)
