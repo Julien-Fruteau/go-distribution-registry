@@ -1,11 +1,9 @@
-# distribution-ctl
+# go-distribution-registry
 
-Interact with distribution registry over http to perform
-images tag clean up considering kubernetes cluster images on use
+A distribution registry client library
 
 Target :
 
-- [x] parse kubernetes cluster images
 - [x] collect all repositories from the distribution registry
 
 - [ ] remove all cluster images tag from images tag to delete
