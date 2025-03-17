@@ -18,7 +18,7 @@ func TestGetDigestDirectly(t *testing.T) {
 }
 
 func TestD(t *testing.T) {
-var j = `{
+	var j = `{
  "schemaVersion": 2,
  "mediaType": "application/vnd.oci.image.manifest.v1+json",
 
@@ -66,6 +66,6 @@ var j = `{
 	  "size": 32
 	}
 `
-  d := digest.FromBytes([]byte(j))
-  assert.Equal(t, "sha256:9d1c7dcd50f5547c998ed553485c4c8ef1bcba72abb1b70c4f7de74572c54278", d.String())
+	d := digest.FromBytes([]byte(j))
+	assert.Equal(t, "sha256:9d1c7dcd50f5547c998ed553485c4c8ef1bcba72abb1b70c4f7de74572c54278", d.String())
 }

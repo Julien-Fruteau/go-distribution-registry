@@ -404,9 +404,9 @@ func (r *RegistryClient) UploadImage() {
 //
 
 func (r *RegistryClient) DeleteManifest(name string, digest digest.Digest, mediaType string) (bool, error) {
-  if err := digest.Validate() ; err != nil {
-    return false, fmt.Errorf("%w: digest %s", ErrInvalidDigest, digest)
-  }
+	if err := digest.Validate(); err != nil {
+		return false, fmt.Errorf("%w: digest %s", ErrInvalidDigest, digest)
+	}
 
 	u := fmt.Sprintf(r.baseUrl+manifestsPath, name, digest)
 	h := r.GetCustomHeader(mediaType)
@@ -444,9 +444,9 @@ func (r *RegistryClient) DeleteManifest(name string, digest digest.Digest, media
 // 🔥 If a layer is deleted which is referenced by a manifest in the registry, then the complete images will not be resolvable.
 // returns 404 not found (does not exists or already deleted)
 func (r *RegistryClient) DeleteLayer(name string, digest digest.Digest, mediaType string) (bool, error) {
-  if err := digest.Validate() ; err != nil {
-    return false, fmt.Errorf("%w: digest %s", ErrInvalidDigest, digest)
-  }
+	if err := digest.Validate(); err != nil {
+		return false, fmt.Errorf("%w: digest %s", ErrInvalidDigest, digest)
+	}
 
 	u := fmt.Sprintf(r.baseUrl+blobsPath, name, digest)
 	h := r.GetCustomHeader(mediaType)

@@ -120,4 +120,3 @@ func TestRegistry(t *testing.T) {
 // 	// Ensure we get a 201 Created response
 // 	assert.Equal(t, http.StatusCreated, resp.StatusCode)
 // }
-
