@@ -104,3 +104,18 @@ func isGzipFile(filename string) bool {
 }
 
 ```
+
+```go
+ // Approach 3: Using a single []byte (Most Efficient)
+ digestsAsSingleSlice := make([]byte, numDigests*32)
+ for i := 0; i < numDigests; i++ {
+  copy(digestsAsSingleSlice[i*32:(i+1)*32], hash[:])
+ }
+ fmt.Printf("Memory for single []byte: ~%d MB\n", (len(digestsAsSingleSlice)+int(unsafe.Sizeof(digestsAsSingleSlice)))/(1024*1024))
+
+ // Accessing a digest in the single []byte storage
+ index := 10
+ start := index * 32
+ end := start + 32
+ fmt.Printf("Digest at index %d: %x\n", index, digestsAsSingleSlice[start:end])
+```
