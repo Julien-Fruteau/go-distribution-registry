@@ -57,3 +57,50 @@ Target :
     }
   }
 ```
+
+blobs can be either a json describing the container config, the list of manifest or tar+gzip file actually containing
+the image container layer
+
+all blobs are stored in the same location, so to identify tar+gzip blobs an additional identification step is required
+
+Every file type has magic bytes at the beginning.
+
+in bash :
+
+```sh
+xxd -l 4 myfile.tar.gz
+# 00000000: 1f8b 08xx
+# 1F 8B → Gzip signature
+# 08    → Compression method (Deflate)
+```
+
+```go
+package main
+
+import (
+ "bytes"
+ "compress/gzip"
+ "fmt"
+ "os"
+)
+
+func isGzipFile(filename string) bool {
+ file, err := os.Open(filename)
+ if err != nil {
+  fmt.Println("Error opening file:", err)
+  return false
+ }
+ defer file.Close()
+
+ // Read first few bytes 2, or 4?
+ buf := make([]byte, 2)
+ _, err = file.Read(buf)
+ if err != nil {
+  return false
+ }
+
+ // Check for gzip magic number (1F 8B)
+ return bytes.Equal(buf, []byte{0x1F, 0x8B})
+}
+
+```
