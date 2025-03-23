@@ -15,7 +15,7 @@ func main() {
 	// Define subcommands
 	inspectCmd := pflag.NewFlagSet("inspect", pflag.ContinueOnError)
 	catalogCmd := pflag.NewFlagSet("catalog", pflag.ContinueOnError)
-	tagCmd := pflag.NewFlagSet("tag", pflag.ContinueOnError)
+	tagCmd := pflag.NewFlagSet("tags", pflag.ContinueOnError)
 
 	var output string
 	// Inspect command flags
@@ -83,7 +83,7 @@ func main() {
 		// You'll need to implement pagination in your registry package
 		outputResult(repositories, output)
 
-	case "tag":
+	case "tags":
 		if err := tagCmd.Parse(os.Args[2:]); err != nil {
 			if err == pflag.ErrHelp {
 				os.Exit(0)
@@ -92,7 +92,7 @@ func main() {
 			os.Exit(1)
 		}
 		if tagCmd.NArg() != 1 {
-			fmt.Println("tag command requires exactly 1 argument: name")
+			fmt.Println("tags command requires exactly 1 argument: name")
 			os.Exit(1)
 		}
 		name := tagCmd.Arg(0)
@@ -115,7 +115,7 @@ func printMainUsage() {
 Commands:
   inspect     Inspect a repository tag
   catalog     List all repositories
-  tag         List all tags for a repository
+  tags        List all tags for a repository
 
 Use "%s <command> --help" for more information about a command.
 `, os.Args[0], os.Args[0])
@@ -149,7 +149,7 @@ Options:
 }
 
 func printTagHelp() {
-	fmt.Fprintf(os.Stdout, `Usage: %s tag [options] <name>
+	fmt.Fprintf(os.Stdout, `Usage: %s tags [options] <name>
 
 List all tags for a repository.
 

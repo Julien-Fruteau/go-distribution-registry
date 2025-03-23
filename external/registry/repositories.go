@@ -125,6 +125,7 @@ func (r *RegistryClient) GetTags(repository string) (TagsResponse, http.Header, 
 	return response, respHeaders, nil
 }
 
+// the manifest list
 func (r *RegistryClient) GetManifests(repository, reference string) (ManifestsResponse, http.Header, error) {
 	u := fmt.Sprintf(r.baseUrl+manifestsPath, repository, reference)
 	h := r.GetCustomHeader(fmt.Sprintf(`%s, %s`, MIME_OCI_LIST, MIME_V2_LIST))
