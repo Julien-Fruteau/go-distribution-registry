@@ -1,6 +1,9 @@
 package env
 
-import "os"
+import (
+	"os"
+	"strconv"
+)
 
 func GetEnvOrDefault(name, other string) string {
 	found, ok := os.LookupEnv(name)
@@ -20,4 +23,18 @@ func LookupEnvOrDefault(lookUpMap map[string]string, name, other string) string 
 	}
 
 	return defaut
+}
+
+// if conversion of env value found cannot be done,
+// returns other
+func GetEnvOrDefaultInt(name string, other int) int {
+	found, ok := os.LookupEnv(name)
+	if !ok {
+		return other
+	}
+	iFound, err := strconv.Atoi(found)
+	if err != nil {
+		return other
+	}
+	return iFound
 }
