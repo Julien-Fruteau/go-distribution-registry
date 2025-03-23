@@ -40,24 +40,32 @@ func TestIsGzipMagicBytes(t *testing.T) {
 func HelperCreateGzipFile(t testing.TB, path string) {
 	t.Helper()
 	f, err := os.Create(path)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatalf("failed to create file: %v", err)
+	}
 	defer f.Close()
 
 	gzipWriter := gzip.NewWriter(f)
 	defer gzipWriter.Close()
 
 	_, err = gzipWriter.Write([]byte("Hello World"))
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatalf("failed to write to file: %v", err)
+	}
 }
 
 func HelperCreateTxtFile(t testing.TB, path string) {
 	t.Helper()
 	f, err := os.Create(path)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatalf("failed to create file: %v", err)
+	}
 	defer f.Close()
 
 	_, err = f.Write([]byte("Hello World"))
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatalf("failed to write to file: %v", err)
+	}
 }
 
 func TestIsGzipFileNotFound(t *testing.T) {
