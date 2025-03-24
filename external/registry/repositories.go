@@ -110,6 +110,12 @@ type ConfigInfo struct {
 	} `json:"rootfs"`
 }
 
+type RepoTagsCreationResponse struct {
+	RepoTag      string `json:"name"`
+	Architecture string `json:"architecture"`
+	Created      string `json:"created"`
+}
+
 const (
 	tagsPath      = `%s/tags/list`
 	manifestsPath = `%s/manifests/%s`
@@ -463,4 +469,26 @@ func (r *RegistryClient) DeleteLayer(name string, digest digest.Digest, mediaTyp
 		}
 		return false, fmt.Errorf("%s, %v", errMsg, respErr)
 	}
+}
+
+func (r *RegistryClient) GetRepositoryTagsCreationDate(name string) ([]RepoTagsCreationResponse, error) {
+	tags, _, err := r.GetTags(name)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp []RepoTagsCreationResponse
+	var errs []error
+
+	for _, tag := range tags.Tags {
+		configInfos, errInspect := r.Inspect(name, tag)
+		if errInspect != nil {
+			errs = append(errs, errInspect)
+		}
+		for _, c := range configInfos {
+			resp = append(resp, RepoTagsCreationResponse{name + ":" + tag, c.Architecture, c.Created})
+		}
+	}
+
+	return resp, fmt.Errorf("errors occured: %v", errs)
 }

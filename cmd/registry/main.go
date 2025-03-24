@@ -15,7 +15,8 @@ func main() {
 	// Define subcommands
 	inspectCmd := pflag.NewFlagSet("inspect", pflag.ContinueOnError)
 	catalogCmd := pflag.NewFlagSet("catalog", pflag.ContinueOnError)
-	tagCmd := pflag.NewFlagSet("tags", pflag.ContinueOnError)
+	tagsCmd := pflag.NewFlagSet("tags", pflag.ContinueOnError)
+	tagsDateCmd := pflag.NewFlagSet("tagsDate", pflag.ContinueOnError)
 
 	var output string
 	// Inspect command flags
@@ -28,8 +29,12 @@ func main() {
 	catalogCmd.Usage = printCatalogHelp
 
 	// Tag command flags
-	tagCmd.StringVarP(&output, "output", "o", "json", "output format: json, yaml or raw")
-	tagCmd.Usage = printTagHelp
+	tagsCmd.StringVarP(&output, "output", "o", "json", "output format: json, yaml or raw")
+	tagsCmd.Usage = printTagHelp
+
+	// tagsDate
+	tagsDateCmd.StringVarP(&output, "output", "o", "json", "output format: json, yaml or raw")
+	tagsDateCmd.Usage = printTagDateHelp
 
 	if len(os.Args) < 2 {
 		fmt.Println("expected 'inspect', 'catalog' or 'tag' subcommands")
@@ -84,24 +89,44 @@ func main() {
 		outputResult(repositories, output)
 
 	case "tags":
-		if err := tagCmd.Parse(os.Args[2:]); err != nil {
+		if err := tagsCmd.Parse(os.Args[2:]); err != nil {
 			if err == pflag.ErrHelp {
 				os.Exit(0)
 			}
-			tagCmd.Usage()
+			tagsCmd.Usage()
 			os.Exit(1)
 		}
-		if tagCmd.NArg() != 1 {
+		if tagsCmd.NArg() != 1 {
 			fmt.Println("tags command requires exactly 1 argument: name")
 			os.Exit(1)
 		}
-		name := tagCmd.Arg(0)
+		name := tagsCmd.Arg(0)
 
 		tags, _, err := r.GetTags(name)
 		if err != nil {
 			log.Fatal("FATAL error retrieving tags: ", err)
 		}
 		outputResult(tags, output)
+
+	case "tagsDate":
+		if err := tagsDateCmd.Parse(os.Args[2:]); err != nil {
+			if err == pflag.ErrHelp {
+				os.Exit(0)
+			}
+			tagsDateCmd.Usage()
+			os.Exit(1)
+		}
+		if tagsDateCmd.NArg() != 1 {
+			fmt.Println("tagsDate command requires exactly 1 argument: name")
+			os.Exit(1)
+		}
+		name := tagsDateCmd.Arg(0)
+
+		repoTagsCreateDate, err := r.GetRepositoryTagsCreationDate(name)
+		if err != nil {
+			log.Fatal("FATAL error retrieving tags: ", err)
+		}
+		outputResult(repoTagsCreateDate, output)
 
 	default:
 		printMainUsage()
@@ -116,6 +141,7 @@ Commands:
   inspect     Inspect a repository tag
   catalog     List all repositories
   tags        List all tags for a repository
+  tagsDate    List all tags creation date for a repository
 
 Use "%s <command> --help" for more information about a command.
 `, os.Args[0], os.Args[0])
@@ -152,6 +178,20 @@ func printTagHelp() {
 	fmt.Fprintf(os.Stdout, `Usage: %s tags [options] <name>
 
 List all tags for a repository.
+
+Arguments:
+  name        Repository name
+
+Options:
+  -o, --output string   Output format: json, yaml or raw (default "json")
+  -h, --help            Help for tag command
+`, os.Args[0])
+}
+
+func printTagDateHelp() {
+	fmt.Fprintf(os.Stdout, `Usage: %s tagsDate [options] <name>
+
+List all tags creation date for a repository.
 
 Arguments:
   name        Repository name
