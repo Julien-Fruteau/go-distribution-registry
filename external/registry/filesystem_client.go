@@ -38,7 +38,6 @@ func IsGzipMagicBytes(b []byte) bool {
 	return bytes.Equal(b, []byte{0x1F, 0x8B})
 }
 
-
 // lookup for gzip files in root/<len2_intermediateDir>/<shaSumLen_finalDir>/ directory
 // check the directory len prior checking if the file is gzip
 // NOTE: `/<len2_intermediateDir>/` counts for the len 4

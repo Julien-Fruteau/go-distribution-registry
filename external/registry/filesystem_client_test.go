@@ -112,18 +112,18 @@ func HelperRandomString(t testing.TB, n int) string {
 // create a random directory: root/<len2_intermediateDir>/<shaSumLen_finalDir>
 // return the path of the directory
 func HelperWalkFsCreateValidLenDir(t testing.TB, root string) string {
-  t.Helper()
-  subDir := filepath.Join(root, HelperRandomString(t, 2))
-  err := os.Mkdir(subDir, 0777)
-  if err != nil {
-    t.Fatalf("failed to create dir: %v", err)
-  }
-  subDir2 := filepath.Join(subDir, HelperRandomString(t, sha256sumLen))
-  err = os.Mkdir(subDir2, 0777)
-  if err != nil {
-    t.Fatalf("failed to create dir: %v", err)
-  }
-  return subDir2
+	t.Helper()
+	subDir := filepath.Join(root, HelperRandomString(t, 2))
+	err := os.Mkdir(subDir, 0777)
+	if err != nil {
+		t.Fatalf("failed to create dir: %v", err)
+	}
+	subDir2 := filepath.Join(subDir, HelperRandomString(t, sha256sumLen))
+	err = os.Mkdir(subDir2, 0777)
+	if err != nil {
+		t.Fatalf("failed to create dir: %v", err)
+	}
+	return subDir2
 }
 
 func TestWalkFs_OnlyDirBadAndGodLenGetEmpty(t *testing.T) {
@@ -131,7 +131,7 @@ func TestWalkFs_OnlyDirBadAndGodLenGetEmpty(t *testing.T) {
 	// invalid length path
 	err := os.Mkdir(filepath.Join(walkDir, "abc"), 0777)
 	assert.NoError(t, err)
-  HelperWalkFsCreateValidLenDir(t, walkDir)
+	HelperWalkFsCreateValidLenDir(t, walkDir)
 
 	got, err := WalkFs(walkDir)
 
@@ -144,7 +144,7 @@ func TestWalkFs_WrongPathLenGzipFileGetEmpty(t *testing.T) {
 	subDir := filepath.Join(walkDir, "tooShort")
 	err := os.Mkdir(subDir, 0777)
 	assert.NoError(t, err)
-  // gzip file never reached by walkfs
+	// gzip file never reached by walkfs
 	path := filepath.Join(subDir, "file.gz")
 	HelperCreateGzipFile(t, path)
 
@@ -156,8 +156,8 @@ func TestWalkFs_WrongPathLenGzipFileGetEmpty(t *testing.T) {
 
 func TestWalkFs_GoodPathLenTxtFileGetEmpty(t *testing.T) {
 	walkDir := t.TempDir()
-  subDir := HelperWalkFsCreateValidLenDir(t, walkDir)
-  // text file not retained
+	subDir := HelperWalkFsCreateValidLenDir(t, walkDir)
+	// text file not retained
 	path := filepath.Join(subDir, "file.txt")
 	HelperCreateTxtFile(t, path)
 
@@ -169,7 +169,7 @@ func TestWalkFs_GoodPathLenTxtFileGetEmpty(t *testing.T) {
 
 func TestWalkFs_GoodPathLenGzipFileGetOne(t *testing.T) {
 	walkDir := t.TempDir()
-  subDir := HelperWalkFsCreateValidLenDir(t, walkDir)
+	subDir := HelperWalkFsCreateValidLenDir(t, walkDir)
 	path := filepath.Join(subDir, "data")
 	HelperCreateGzipFile(t, path)
 
@@ -177,7 +177,7 @@ func TestWalkFs_GoodPathLenGzipFileGetOne(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(got))
-  assert.Equal(t, path, got[0])
+	assert.Equal(t, path, got[0])
 }
 
 // ========== end walk fs test
