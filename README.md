@@ -2,20 +2,18 @@
 
 A distribution registry client library
 
-Target :
+Target : clean up repository tag and image layers
 
-Http Client:
+## TODO
+
+### Http Client
 
 - [x] collect all repositories from the distribution registry
-
-- [ ] inspect on existing tag can lead to (all) layers 404
-  - if a tag inspect returns an error layer not found, or all layers not found it is corrupted
-  - doing a dry run should look up for this and inform user (user can ensure docker pull does not work), and rebuild image if in use in cluster
-  - doing a clean up such tag should anyway be removed in order to be rebuild
-- [ ] wip: for all remaining tag, inspect and extract created date
+- [x] for tag, inspect and extract created date
+  - [ ] WIP : validate cmd tagsDate
 - [ ] remove from the list the N more recent tags
 
-- [ ] wip: for remaining tags, call distribution delete tag
+- [x] delete tag, (blobs) layer
 
 ~- [ ] then a registry garbage collect should be called/executed
   NB: since current v2 is buggy, consider doing it manually
@@ -23,7 +21,7 @@ Http Client:
 
 🔥: not direct http call to get the list of all available blobs
 
-File system Client:
+### File system Client
 
 - [x] parse filesystem to get all available gzip blobs
   in classic storage :
