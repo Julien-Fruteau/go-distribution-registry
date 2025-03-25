@@ -42,4 +42,5 @@ const (
 	MIME_OCI_MANIFEST   = "application/vnd.oci.image.manifest.v1+json"
 	MIME_OCI_LIST       = "application/vnd.oci.image.index.v1+json"
 	MIME_OCI_CONFIG     = "application/vnd.oci.image.config.v1+json"
+	MIME_OCI_LAYER_GZIP = "application/vnd.oci.image.layer.v1.tar+gzip"
 )
