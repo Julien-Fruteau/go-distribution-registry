@@ -269,14 +269,9 @@ func NewInspectInfo(name string, tagInfo Tag, digest, mediaType string, configRe
 func (r *RegistryClient) Inspect(name, tag string) ([]ConfigInfo, error) {
 	var inspectInfos []ConfigInfo
 
-	manifestsResp, respHeaders, err := r.GetManifests(name, tag)
+	manifestsResp, _, err := r.GetManifests(name, tag)
 	if err != nil {
 		return inspectInfos, fmt.Errorf("error getting manifests for %s %s: %v", name, tag, err)
-	}
-
-	tagDigest := respHeaders.Get("Docker-Content-Digest")
-	if tagDigest == "" {
-		return inspectInfos, fmt.Errorf("no digest found for %s %s", name, tag)
 	}
 
 	type result struct {
