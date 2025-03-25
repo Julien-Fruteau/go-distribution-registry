@@ -146,17 +146,6 @@ func (r *RegistryClient) GetManifest(repository, reference, mediaType string) (M
 	return response, respHeaders, nil
 }
 
-// ⚠️  might only be ok with content-type config, use with care or prefer configinfo
-// func (r *Registry) GetBlobs(repository, reference, mediaType string) (BlobsResponse, http.Header, error) {
-// 	u := fmt.Sprintf(r.baseUrl+blobsPath, repository, reference)
-// 	h := r.GetCustomHeader(mediaType)
-// 	response, respHeaders, err := HttpDo[BlobsResponse](r.httpClient, http.MethodGet, u, h, nil)
-// 	if err != nil {
-// 		return response, respHeaders, fmt.Errorf("error getting %s %s blobs:\n%v", repository, reference, err)
-// 	}
-// 	return response, respHeaders, nil
-// }
-
 func (r *RegistryClient) ConfigInfo(repository, reference, mediaType string) (ConfigInfo, http.Header, error) {
 	if mediaType != MIME_V2_CONFIG && mediaType != MIME_OCI_CONFIG {
 		return ConfigInfo{}, nil, fmt.Errorf("unexpected media type %s, wants %s or %s", mediaType, MIME_V2_CONFIG, MIME_OCI_CONFIG)
