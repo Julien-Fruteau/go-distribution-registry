@@ -130,7 +130,7 @@ func main() {
 
 		repoTagsCreateDate, err := r.GetRepositoryTagsCreationDate(name)
 		if err != nil {
-			log.Fatal("FATAL error retrieving tags: ", err)
+			log.Fatal("FATAL error retrieving tags creation date: ", err)
 		}
 		outputResult(repoTagsCreateDate, output)
 
