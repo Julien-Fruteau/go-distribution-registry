@@ -7,6 +7,7 @@ toolchain go1.23.5
 require (
 	github.com/distribution/distribution/v3 v3.0.0-rc.3
 	github.com/docker/distribution v2.8.3+incompatible
+	github.com/joho/godotenv v1.5.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/stretchr/testify v1.9.0
 	gopkg.in/yaml.v2 v2.4.0

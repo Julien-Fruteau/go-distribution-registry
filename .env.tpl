@@ -1,0 +1,5 @@
+REG_HOST=localhost
+REG_SCHEME=https
+REG_USER=me
+REG_PASSWORD=""
+

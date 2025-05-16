@@ -9,6 +9,7 @@ import (
 	"github.com/julien-fruteau/go-distribution-registry/external/registry"
 	"github.com/spf13/pflag"
 	"gopkg.in/yaml.v2"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -45,6 +46,11 @@ func main() {
 	if os.Args[1] == "-h" || os.Args[1] == "--help" {
 		printMainUsage()
 		os.Exit(0)
+	}
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	r := registry.NewRegistryClient()
