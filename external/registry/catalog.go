@@ -15,30 +15,24 @@ type CatalogResponse struct {
 	Repositories []string `json:"repositories"`
 }
 
-// ℹ️l LISTING REPOSITORIES ℹ️
-//
-// Base request: GET /v2/_catalog
-//
-// Starting paginated flow request: GET /v2/_catalog?n=<integer>
-//
-// The response from request looks like:
-//
-// 200 OK
-// Content-Type: application/json
-// Link: <<url>?n=<n from the request>&last=<last repository in response>>; rel="next"
-//
-//	{
-//	    "repositories": [
-//	        <name>,
-//	        ...
-//	    ]
-//	}
-//
-// the Link header:
-//   - if NOT provided: all results received
-//   - if provided: last must be used to get the next pagination
-//
-// Next : GET /v2/_catalog?n=<n from the request>&last=<last repository value from previous response>
+/* Catalog -
+	Base request: GET /v2/_catalog
+	Starting paginated flow request: GET /v2/_catalog?n=<integer>
+	The response from request looks like:
+	200 OK
+	Content-Type: application/json
+	Link: <<url>?n=<n from the request>&last=<last repository in response>>; rel="next"
+		{
+				"repositories": [
+						<name>,
+						...
+				]
+		}
+	the Link header:
+		- if NOT provided: all results received
+		- if provided: last must be used to get the next pagination
+	Next : GET /v2/_catalog?n=<n from the request>&last=<last repository value from previous response>
+*/
 func (r *RegistryClient) Catalog() ([]string, error) {
 	repositories := make([]string, 0)
 	// number of repositories to get per request
@@ -73,9 +67,9 @@ func (r *RegistryClient) Catalog() ([]string, error) {
 
 		// Find all matches in the input string
 		matches := re.FindAllStringSubmatch(decoded, -1)
-		lastUrl := matches[0][1]
+		lastURL := matches[0][1]
 
-		parsedURL, err := url.ParseRequestURI(lastUrl)
+		parsedURL, err := url.ParseRequestURI(lastURL)
 		if err != nil {
 			return repositories, fmt.Errorf("error parsing url: %v", err)
 		}

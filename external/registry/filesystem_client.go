@@ -38,7 +38,7 @@ func IsGzipMagicBytes(b []byte) bool {
 	return bytes.Equal(b, []byte{0x1F, 0x8B})
 }
 
-// lookup for gzip files in root/<len2_intermediateDir>/<shaSumLen_finalDir>/ directory
+// WalkDirFnGzipBlobs lookup for gzip files in root/<len2_intermediateDir>/<shaSumLen_finalDir>/ directory
 // check the directory len prior checking if the file is gzip
 // NOTE: `/<len2_intermediateDir>/` counts for the len 4
 func WalkDirFnGzipBlobs(root, path string, d fs.DirEntry, err error, gzipBlobs *[]string) error {
@@ -62,7 +62,7 @@ func WalkDirFnGzipBlobs(root, path string, d fs.DirEntry, err error, gzipBlobs *
 	return nil
 }
 
-// walks root directory to find gzip blobs file data
+// WalkFs walks root directory to find gzip blobs file data
 // returns the list of file path found
 func WalkFs(root string) ([]string, error) {
 	var gzipBlobs []string

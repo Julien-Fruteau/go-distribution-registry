@@ -16,15 +16,15 @@ Target : clean up repository tag and image layers
 - [x] delete tag, (blobs) layer
 
 ~- [ ] then a registry garbage collect should be called/executed
-  NB: since current v2 is buggy, consider doing it manually
-  while v3 is officially released~
+NB: since current v2 is buggy, consider doing it manually
+while v3 is officially released~
 
 🔥: not direct http call to get the list of all available blobs
 
 ### File system Client
 
 - [x] parse filesystem to get all available gzip blobs
-  in classic storage :
+      in classic storage :
 
       1- Recursively scans the blobs directory.
       2- Extracts the digest from the filesystem path.
