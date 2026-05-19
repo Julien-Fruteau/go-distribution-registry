@@ -38,14 +38,14 @@ type Conf struct {
 	mime     string
 }
 
-// The client should include an Accept header indicating which manifest content types it supports. For more details on the manifest format and content types, see Image Manifest Version 2, Schema 2. In a successful response, the Content-Type header will indicate which manifest type is being returned.
-func NewRegistryClient() RegistryClient {
-	host := env.GetEnvOrDefault("REG_HOST", "localhost")
+func NewRegistryClient() (RegistryClient, error) {
+	host, err := resolveHost(dockerConfigPath)
+	if err != nil {
+		return RegistryClient{}, err
+	}
 	scheme := env.GetEnvOrDefault("REG_SCHEME", "http")
-	username := env.GetEnvOrDefault("REG_USER", "admin")
-	password := env.GetEnvOrDefault("REG_PASSWORD", "")
+	username, password := resolveCredentials(dockerConfigPath, host)
 	mime := env.GetEnvOrDefault("REG_MIME", fmt.Sprintf("%s, %s, %s, %s", MIME_V2_MANIFEST, MIME_V2_LIST, MIME_OCI_LIST, MIME_OCI_MANIFEST))
-	// mime := env.GetEnvOrDefault("REG_MIME", MIME_V2)
 
 	return RegistryClient{
 		baseUrl: scheme + "://" + host + "/v2/",
@@ -61,7 +61,7 @@ func NewRegistryClient() RegistryClient {
 			"Authorization": GetBasicAuthHeader(username, password),
 		},
 		httpClient: &http.Client{},
-	}
+	}, nil
 }
 
 // if needing to provide multiple accept header, contatenate

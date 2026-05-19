@@ -53,7 +53,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	r := registry.NewRegistryClient()
+	r, err := registry.NewRegistryClient()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	switch os.Args[1] {
 	case "inspect":
