@@ -48,9 +48,8 @@ func main() {
 		os.Exit(0)
 	}
 
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal(err)
+	if err := godotenv.Load(); err != nil {
+		log.Printf("warning: .env not loaded (%v), falling back to docker credentials", err)
 	}
 
 	r, err := registry.NewRegistryClient()
@@ -72,7 +71,7 @@ func main() {
 			printInspectHelp()
 			os.Exit(1)
 		}
-		name := inspectCmd.Arg(0)
+		name := r.NormalizeName(inspectCmd.Arg(0))
 		tag := inspectCmd.Arg(1)
 
 		manifest, err := r.Inspect(name, tag)
@@ -109,7 +108,7 @@ func main() {
 			fmt.Println("tags command requires exactly 1 argument: name")
 			os.Exit(1)
 		}
-		name := tagsCmd.Arg(0)
+		name := r.NormalizeName(tagsCmd.Arg(0))
 
 		tags, _, err := r.GetTags(name)
 		if err != nil {
@@ -129,7 +128,7 @@ func main() {
 			fmt.Println("tagsDate command requires exactly 1 argument: name")
 			os.Exit(1)
 		}
-		name := tagsDateCmd.Arg(0)
+		name := r.NormalizeName(tagsDateCmd.Arg(0))
 
 		repoTagsCreateDate, err := r.GetRepositoryTagsCreationDate(name)
 		if err != nil {
