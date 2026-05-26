@@ -3,6 +3,7 @@ package registry
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/distribution/distribution/v3/manifest/schema2"
 	"github.com/julien-fruteau/go-distribution-registry/internal/env"
@@ -62,6 +63,17 @@ func NewRegistryClient() (RegistryClient, error) {
 		},
 		httpClient: &http.Client{},
 	}, nil
+}
+
+// NormalizeName strips the registry host prefix from a repository name if present.
+// For example, "docker.mine.com/group/backend" becomes "group/backend" when the
+// configured host is "docker.mine.com".
+func (r *RegistryClient) NormalizeName(name string) string {
+	prefix := r.conf.host + "/"
+	if strings.HasPrefix(name, prefix) {
+		return name[len(prefix):]
+	}
+	return name
 }
 
 // if needing to provide multiple accept header, contatenate
