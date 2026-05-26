@@ -49,18 +49,37 @@ func main() {
 		os.Exit(0)
 	}
 
+	// Parse global flags before the subcommand. SetInterspersed(false) stops
+	// parsing at the first non-flag argument (the subcommand).
+	globalFlags := pflag.NewFlagSet("global", pflag.ContinueOnError)
+	globalFlags.SetInterspersed(false)
+	var regHost string
+	globalFlags.StringVar(&regHost, "reg", "", "registry host (overrides REG_HOST env var)")
+	if err := globalFlags.Parse(os.Args[1:]); err != nil && err != pflag.ErrHelp {
+		fmt.Fprintf(os.Stderr, "error parsing global flags: %v\n", err)
+		printMainUsage()
+		os.Exit(1)
+	}
+	remainingArgs := globalFlags.Args()
+
+	if len(remainingArgs) == 0 {
+		fmt.Println("expected 'inspect', 'catalog' or 'tag' subcommands")
+		printMainUsage()
+		os.Exit(1)
+	}
+
 	if err := godotenv.Load(); err != nil {
 		log.Printf("warning: .env not loaded (%v), falling back to docker credentials", err)
 	}
 
-	r, err := registry.NewRegistryClient()
+	r, err := registry.NewRegistryClient(regHost)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	switch os.Args[1] {
+	switch remainingArgs[0] {
 	case "inspect":
-		if err := inspectCmd.Parse(os.Args[2:]); err != nil {
+		if err := inspectCmd.Parse(remainingArgs[1:]); err != nil {
 			if err == pflag.ErrHelp {
 				os.Exit(0)
 			}
@@ -86,8 +105,7 @@ func main() {
 			printInspectHelp()
 			os.Exit(1)
 		}
-		name := r.NormalizeName(inspectCmd.Arg(0))
-		tag := inspectCmd.Arg(1)
+		name = r.NormalizeName(name)
 
 		manifest, err := r.Inspect(name, tag)
 		if err != nil {
@@ -96,7 +114,7 @@ func main() {
 		outputResult(manifest, output)
 
 	case "catalog":
-		if err := catalogCmd.Parse(os.Args[2:]); err != nil {
+		if err := catalogCmd.Parse(remainingArgs[1:]); err != nil {
 			if err == pflag.ErrHelp {
 				os.Exit(0)
 			}
@@ -112,7 +130,7 @@ func main() {
 		outputResult(repositories, output)
 
 	case "tags":
-		if err := tagsCmd.Parse(os.Args[2:]); err != nil {
+		if err := tagsCmd.Parse(remainingArgs[1:]); err != nil {
 			if err == pflag.ErrHelp {
 				os.Exit(0)
 			}
@@ -132,7 +150,7 @@ func main() {
 		outputResult(tags, output)
 
 	case "tagsDate":
-		if err := tagsDateCmd.Parse(os.Args[2:]); err != nil {
+		if err := tagsDateCmd.Parse(remainingArgs[1:]); err != nil {
 			if err == pflag.ErrHelp {
 				os.Exit(0)
 			}
@@ -158,7 +176,10 @@ func main() {
 }
 
 func printMainUsage() {
-	fmt.Fprintf(os.Stdout, `Usage: %s <command> [options]
+	fmt.Fprintf(os.Stdout, `Usage: %s [--reg <host>] <command> [options]
+
+Global Options:
+  --reg string   Registry host (overrides REG_HOST env var; required when multiple registries exist in docker config)
 
 Commands:
   inspect     Inspect a repository tag

@@ -39,13 +39,16 @@ type Conf struct {
 	mime     string
 }
 
-func NewRegistryClient() (RegistryClient, error) {
-	host, err := resolveHost(dockerConfigPath)
+func NewRegistryClient(optHost string) (RegistryClient, error) {
+	host, err := resolveHost(dockerConfigPath, optHost)
 	if err != nil {
 		return RegistryClient{}, err
 	}
 	scheme := env.GetEnvOrDefault("REG_SCHEME", "http")
-	username, password := resolveCredentials(dockerConfigPath, host)
+	username, password, err := resolveCredentials(dockerConfigPath, host)
+	if err != nil {
+		return RegistryClient{}, err
+	}
 	mime := env.GetEnvOrDefault("REG_MIME", fmt.Sprintf("%s, %s, %s, %s", MIME_V2_MANIFEST, MIME_V2_LIST, MIME_OCI_LIST, MIME_OCI_MANIFEST))
 
 	return RegistryClient{

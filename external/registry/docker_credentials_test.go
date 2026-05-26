@@ -140,9 +140,16 @@ func TestNormalizeDockerHost_HTTPPrefix(t *testing.T) {
 
 // --- resolveHost ---
 
+func TestResolveHost_OptHostTakesPriority(t *testing.T) {
+	t.Setenv("REG_HOST", "env.host.com")
+	host, err := resolveHost("/nonexistent/config.json", "opt.host.com")
+	require.NoError(t, err)
+	assert.Equal(t, "opt.host.com", host)
+}
+
 func TestResolveHost_EnvVarSet(t *testing.T) {
 	t.Setenv("REG_HOST", "explicit.host.com")
-	host, err := resolveHost("/nonexistent/config.json")
+	host, err := resolveHost("/nonexistent/config.json", "")
 	require.NoError(t, err)
 	assert.Equal(t, "explicit.host.com", host)
 }
@@ -152,7 +159,7 @@ func TestResolveHost_SingleRegistry(t *testing.T) {
 	path := writeDockerConfig(t, cfg)
 	os.Unsetenv("REG_HOST")
 
-	host, err := resolveHost(path)
+	host, err := resolveHost(path, "")
 	require.NoError(t, err)
 	assert.Equal(t, "dkr.example.com", host)
 }
@@ -162,7 +169,7 @@ func TestResolveHost_SingleRegistryHTTPSKey(t *testing.T) {
 	path := writeDockerConfig(t, cfg)
 	os.Unsetenv("REG_HOST")
 
-	host, err := resolveHost(path)
+	host, err := resolveHost(path, "")
 	require.NoError(t, err)
 	assert.Equal(t, "dkr.example.com", host)
 }
@@ -175,25 +182,39 @@ func TestResolveHost_MultipleRegistriesReturnsError(t *testing.T) {
 	path := writeDockerConfig(t, cfg)
 	os.Unsetenv("REG_HOST")
 
-	_, err := resolveHost(path)
+	_, err := resolveHost(path, "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "multiple registries")
+	assert.Contains(t, err.Error(), "-reg")
 	assert.Contains(t, err.Error(), "alpha.example.com")
 	assert.Contains(t, err.Error(), "beta.example.com")
+}
+
+func TestResolveHost_MultipleRegistriesWithOptHostSucceeds(t *testing.T) {
+	cfg := `{"auths":{
+		"alpha.example.com":{"auth":"` + encodeAuth("u", "p") + `"},
+		"beta.example.com":{"auth":"` + encodeAuth("u", "p") + `"}
+	}}`
+	path := writeDockerConfig(t, cfg)
+	os.Unsetenv("REG_HOST")
+
+	host, err := resolveHost(path, "alpha.example.com")
+	require.NoError(t, err)
+	assert.Equal(t, "alpha.example.com", host)
 }
 
 func TestResolveHost_NoRegistriesReturnsError(t *testing.T) {
 	path := writeDockerConfig(t, `{"auths":{}}`)
 	os.Unsetenv("REG_HOST")
 
-	_, err := resolveHost(path)
+	_, err := resolveHost(path, "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no registries found")
 }
 
 func TestResolveHost_MissingConfigReturnsError(t *testing.T) {
 	os.Unsetenv("REG_HOST")
-	_, err := resolveHost("/nonexistent/config.json")
+	_, err := resolveHost("/nonexistent/config.json", "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "REG_HOST not set")
 }
@@ -207,7 +228,8 @@ func TestResolveCredentials_EnvUserTakesPriority(t *testing.T) {
 	t.Setenv("REG_USER", "envuser")
 	t.Setenv("REG_PASSWORD", "envpass")
 
-	u, p := resolveCredentials(path, "myhost")
+	u, p, err := resolveCredentials(path, "myhost")
+	require.NoError(t, err)
 	assert.Equal(t, "envuser", u)
 	assert.Equal(t, "envpass", p)
 }
@@ -219,25 +241,18 @@ func TestResolveCredentials_DockerConfigUsed(t *testing.T) {
 	os.Unsetenv("REG_USER")
 	os.Unsetenv("REG_PASSWORD")
 
-	u, p := resolveCredentials(path, "myhost")
+	u, p, err := resolveCredentials(path, "myhost")
+	require.NoError(t, err)
 	assert.Equal(t, "dockeruser", u)
 	assert.Equal(t, "dockerpass", p)
 }
 
-func TestResolveCredentials_FallsBackToDefault(t *testing.T) {
+func TestResolveCredentials_NoCreds_ReturnsError(t *testing.T) {
 	os.Unsetenv("REG_USER")
 	os.Unsetenv("REG_PASSWORD")
 
-	u, p := resolveCredentials("/nonexistent/config.json", "myhost")
-	assert.Equal(t, "admin", u)
-	assert.Equal(t, "", p)
-}
-
-func TestResolveCredentials_FallsBackWithREGPassword(t *testing.T) {
-	os.Unsetenv("REG_USER")
-	t.Setenv("REG_PASSWORD", "onlypass")
-
-	u, p := resolveCredentials("/nonexistent/config.json", "myhost")
-	assert.Equal(t, "admin", u)
-	assert.Equal(t, "onlypass", p)
+	_, _, err := resolveCredentials("/nonexistent/config.json", "myhost")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no credentials found")
+	assert.Contains(t, err.Error(), "myhost")
 }

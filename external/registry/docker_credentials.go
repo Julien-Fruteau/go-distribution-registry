@@ -109,11 +109,16 @@ func normalizeDockerHost(key string) string {
 // resolveHost returns the registry hostname to connect to.
 //
 // Priority:
-//  1. REG_HOST explicitly set in environment → use it.
-//  2. Exactly one registry found in docker config → use that host automatically.
-//  3. Multiple registries found → error asking to set REG_HOST.
-//  4. No registries found → error.
-func resolveHost(configPath string) (string, error) {
+//  1. optHost provided via -reg flag → use it.
+//  2. REG_HOST explicitly set in environment → use it.
+//  3. Exactly one registry found in docker config → use that host automatically.
+//  4. Multiple registries found → error asking to use -reg or set REG_HOST.
+//  5. No registries found → error.
+func resolveHost(configPath, optHost string) (string, error) {
+	if optHost != "" {
+		return optHost, nil
+	}
+
 	if host, ok := os.LookupEnv("REG_HOST"); ok {
 		return host, nil
 	}
@@ -148,7 +153,7 @@ func resolveHost(configPath string) (string, error) {
 			hosts = append(hosts, h)
 		}
 		sort.Strings(hosts)
-		return "", fmt.Errorf("REG_HOST not set and multiple registries found in docker config, set REG_HOST to one of: %s", strings.Join(hosts, ", "))
+		return "", fmt.Errorf("multiple registries found in docker config; use -reg <host> or set REG_HOST to one of: %s", strings.Join(hosts, ", "))
 	}
 	return "", nil
 }
@@ -157,21 +162,17 @@ func resolveHost(configPath string) (string, error) {
 //
 // Priority:
 //  1. REG_USER explicitly set in environment → use REG_USER + REG_PASSWORD (backward compat).
-//  2. Docker credential lookup from config.json for host.
-//  3. Defaults: username "admin", REG_PASSWORD if set otherwise "".
-func resolveCredentials(configPath, host string) (username, password string) {
+//  2. Docker credential lookup from config.json / credstore for host.
+//  3. No credentials found → return error.
+func resolveCredentials(configPath, host string) (username, password string, err error) {
 	if envUser, ok := os.LookupEnv("REG_USER"); ok {
 		envPass, _ := os.LookupEnv("REG_PASSWORD")
-		return envUser, envPass
+		return envUser, envPass, nil
 	}
 
 	if creds, err := lookupDockerCredentials(configPath, host); err == nil {
-		return creds.Username, creds.Password
+		return creds.Username, creds.Password, nil
 	}
 
-	defaultPass := ""
-	if p, ok := os.LookupEnv("REG_PASSWORD"); ok {
-		defaultPass = p
-	}
-	return "admin", defaultPass
+	return "", "", fmt.Errorf("no credentials found for host %q: set REG_USER/REG_PASSWORD or run `docker login %s`", host, host)
 }
