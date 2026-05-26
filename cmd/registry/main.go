@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/julien-fruteau/go-distribution-registry/external/registry"
 	"github.com/spf13/pflag"
@@ -66,8 +67,22 @@ func main() {
 			inspectCmd.Usage()
 			os.Exit(1)
 		}
-		if inspectCmd.NArg() != 2 {
-			fmt.Println("inspect command requires exactly 2 arguments: name and tag")
+		var name, tag string
+		switch inspectCmd.NArg() {
+		case 1:
+			arg := inspectCmd.Arg(0)
+			idx := strings.LastIndex(arg, ":")
+			if idx < 0 {
+				fmt.Println("inspect: single argument must be in the format <name>:<tag>")
+				printInspectHelp()
+				os.Exit(1)
+			}
+			name, tag = arg[:idx], arg[idx+1:]
+		case 2:
+			name = inspectCmd.Arg(0)
+			tag = inspectCmd.Arg(1)
+		default:
+			fmt.Println("inspect command requires 1 argument <name>:<tag> or 2 arguments <name> <tag>")
 			printInspectHelp()
 			os.Exit(1)
 		}
@@ -156,18 +171,21 @@ Use "%s <command> --help" for more information about a command.
 }
 
 func printInspectHelp() {
-	fmt.Fprintf(os.Stdout, `Usage: %s inspect [options] <name> <tag>
+	fmt.Fprintf(os.Stdout, `Usage: %s inspect [options] <name>:<tag>
+       %s inspect [options] <name> <tag>
 
 Inspect a repository tag manifest.
 
 Arguments:
-  name        Repository name
-  tag         Repository tag
+  name        Repository name (e.g. myrepo/backend)
+  tag         Repository tag  (e.g. latest)
+
+  A single argument in the form <name>:<tag> is also accepted.
 
 Options:
   -o, --output string   Output format: json, yaml or raw (default "json")
   -h, --help            Help for inspect command
-`, os.Args[0])
+`, os.Args[0], os.Args[0])
 }
 
 func printCatalogHelp() {
