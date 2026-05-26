@@ -247,12 +247,12 @@ func TestResolveCredentials_DockerConfigUsed(t *testing.T) {
 	assert.Equal(t, "dockerpass", p)
 }
 
-func TestResolveCredentials_NoCreds_ReturnsError(t *testing.T) {
+func TestResolveCredentials_NoCreds_ReturnsEmpty(t *testing.T) {
 	os.Unsetenv("REG_USER")
 	os.Unsetenv("REG_PASSWORD")
 
-	_, _, err := resolveCredentials("/nonexistent/config.json", "myhost")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "no credentials found")
-	assert.Contains(t, err.Error(), "myhost")
+	u, p, err := resolveCredentials("/nonexistent/config.json", "myhost")
+	require.NoError(t, err)
+	assert.Equal(t, "", u)
+	assert.Equal(t, "", p)
 }

@@ -51,6 +51,11 @@ func NewRegistryClient(optHost string) (RegistryClient, error) {
 	}
 	mime := env.GetEnvOrDefault("REG_MIME", fmt.Sprintf("%s, %s, %s, %s", MIME_V2_MANIFEST, MIME_V2_LIST, MIME_OCI_LIST, MIME_OCI_MANIFEST))
 
+	headers := map[string]string{"Accept": mime}
+	if username != "" {
+		headers["Authorization"] = GetBasicAuthHeader(username, password)
+	}
+
 	return RegistryClient{
 		baseUrl: scheme + "://" + host + "/v2/",
 		conf: Conf{
@@ -60,11 +65,8 @@ func NewRegistryClient(optHost string) (RegistryClient, error) {
 			password: password,
 			mime:     mime,
 		},
-		httpHeaders: map[string]string{
-			"Accept":        mime,
-			"Authorization": GetBasicAuthHeader(username, password),
-		},
-		httpClient: &http.Client{},
+		httpHeaders: headers,
+		httpClient:  &http.Client{},
 	}, nil
 }
 
@@ -82,8 +84,9 @@ func (r *RegistryClient) NormalizeName(name string) string {
 // if needing to provide multiple accept header, contatenate
 // them separated by coma
 func (r *RegistryClient) GetCustomHeader(mediaType string) map[string]string {
-	return map[string]string{
-		"Accept":        mediaType,
-		"Authorization": GetBasicAuthHeader(r.conf.username, r.conf.password),
+	headers := map[string]string{"Accept": mediaType}
+	if r.conf.username != "" {
+		headers["Authorization"] = GetBasicAuthHeader(r.conf.username, r.conf.password)
 	}
+	return headers
 }

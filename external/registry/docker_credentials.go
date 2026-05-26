@@ -163,16 +163,17 @@ func resolveHost(configPath, optHost string) (string, error) {
 // Priority:
 //  1. REG_USER explicitly set in environment → use REG_USER + REG_PASSWORD (backward compat).
 //  2. Docker credential lookup from config.json / credstore for host.
-//  3. No credentials found → return error.
+//  3. No credentials found → return empty strings (no error); the registry will
+//     return 401 if authentication is actually required.
 func resolveCredentials(configPath, host string) (username, password string, err error) {
 	if envUser, ok := os.LookupEnv("REG_USER"); ok {
 		envPass, _ := os.LookupEnv("REG_PASSWORD")
 		return envUser, envPass, nil
 	}
 
-	if creds, err := lookupDockerCredentials(configPath, host); err == nil {
+	if creds, lookupErr := lookupDockerCredentials(configPath, host); lookupErr == nil {
 		return creds.Username, creds.Password, nil
 	}
 
-	return "", "", fmt.Errorf("no credentials found for host %q: set REG_USER/REG_PASSWORD or run `docker login %s`", host, host)
+	return "", "", nil
 }
