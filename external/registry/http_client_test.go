@@ -53,7 +53,7 @@ type image struct {
 
 func TestRegistry(t *testing.T) {
 	// setup
-	registry := setupRegistry(t, ":5000")
+	registry := setupRegistry(t, ":52376")
 	errchan := make(chan error, 1)
 	var err error
 	go func() {
@@ -75,7 +75,7 @@ func TestRegistry(t *testing.T) {
 	time.Sleep(3 * time.Second)
 
 	// Make a request to the test registry
-	resp, err := http.Get("http://localhost:5000" + "/v2/")
+	resp, err := http.Get("http://localhost:52376" + "/v2/")
 	assert.NoError(t, err)
 	defer resp.Body.Close()
 
