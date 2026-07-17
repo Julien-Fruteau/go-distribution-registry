@@ -7,10 +7,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/joho/godotenv"
 	"github.com/julien-fruteau/go-distribution-registry/external/registry"
 	"github.com/spf13/pflag"
 	"gopkg.in/yaml.v2"
-	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -19,8 +19,10 @@ func main() {
 	catalogCmd := pflag.NewFlagSet("catalog", pflag.ContinueOnError)
 	tagsCmd := pflag.NewFlagSet("tags", pflag.ContinueOnError)
 	tagsDateCmd := pflag.NewFlagSet("tagsDate", pflag.ContinueOnError)
+	matchTagCmd := pflag.NewFlagSet("matchtag", pflag.ContinueOnError)
 
 	var output string
+	var matchRef string
 	// Inspect command flags
 	inspectCmd.StringVarP(&output, "output", "o", "json", "output format: json, yaml or raw")
 	inspectCmd.Usage = printInspectHelp
@@ -37,6 +39,11 @@ func main() {
 	// tagsDate
 	tagsDateCmd.StringVarP(&output, "output", "o", "json", "output format: json, yaml or raw")
 	tagsDateCmd.Usage = printTagDateHelp
+
+	// matchtag
+	matchTagCmd.StringVarP(&output, "output", "o", "json", "output format: json, yaml or raw")
+	matchTagCmd.StringVarP(&matchRef, "ref", "r", registry.DefaultMatchReference, "reference tag to resolve (the floating tag to match)")
+	matchTagCmd.Usage = printMatchTagHelp
 
 	if len(os.Args) < 2 {
 		fmt.Println("expected 'inspect', 'catalog' or 'tag' subcommands")
@@ -169,6 +176,27 @@ func main() {
 		}
 		outputResult(repoTagsCreateDate, output)
 
+	case "matchtag":
+		if err := matchTagCmd.Parse(remainingArgs[1:]); err != nil {
+			if err == pflag.ErrHelp {
+				os.Exit(0)
+			}
+			matchTagCmd.Usage()
+			os.Exit(1)
+		}
+		if matchTagCmd.NArg() != 1 {
+			fmt.Println("matchtag command requires exactly 1 argument: name")
+			printMatchTagHelp()
+			os.Exit(1)
+		}
+		name := r.NormalizeName(matchTagCmd.Arg(0))
+
+		match, err := r.MatchTag(name, matchRef)
+		if err != nil {
+			log.Fatal("FATAL error matching tag: ", err)
+		}
+		outputResult(match, output)
+
 	default:
 		printMainUsage()
 		os.Exit(1)
@@ -186,6 +214,7 @@ Commands:
   catalog     List all repositories
   tags        List all tags for a repository
   tagsDate    List all tags creation date for a repository
+  matchtag    Resolve which versioned tags share the same image as a floating tag (e.g. stable)
 
 Use "%s <command> --help" for more information about a command.
 `, os.Args[0], os.Args[0])
@@ -247,6 +276,31 @@ Options:
   -o, --output string   Output format: json, yaml or raw (default "json")
   -h, --help            Help for tag command
 `, os.Args[0])
+}
+
+func printMatchTagHelp() {
+	fmt.Fprintf(os.Stdout, `Usage: %s matchtag [options] <name>
+
+Resolve which versioned tags of a repository point at the same image content as a
+floating reference tag (default: %q).
+
+Legacy Schema 1 manifests embed the tag name in their signed payload, so their
+manifest digest differs from one tag to another for an identical image. matchtag
+compares the layer content instead (config digest for v2/oci, sorted fsLayers for
+v1), which is tag-independent, and reports the highest matching x.y.z version.
+
+Arguments:
+  name        Repository name (e.g. ncit/security-admin-api)
+
+Options:
+  -r, --ref string      Reference tag to resolve (default %q)
+  -o, --output string   Output format: json, yaml or raw (default "json")
+  -h, --help            Help for matchtag command
+
+Example:
+  registry matchtag ncit/security-admin-api
+  registry matchtag --ref latest-dev ncit/lilas-api -o yaml
+`, os.Args[0], registry.DefaultMatchReference, registry.DefaultMatchReference)
 }
 
 func outputResult(data any, format string) {

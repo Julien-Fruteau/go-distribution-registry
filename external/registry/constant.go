@@ -43,4 +43,7 @@ const (
 	MIME_OCI_LIST       = "application/vnd.oci.image.index.v1+json"
 	MIME_OCI_CONFIG     = "application/vnd.oci.image.config.v1+json"
 	MIME_OCI_LAYER_GZIP = "application/vnd.oci.image.layer.v1.tar+gzip"
+	// Schema 1 (deprecated, but still served by some registries for legacy images)
+	MIME_V1_MANIFEST  = "application/vnd.docker.distribution.manifest.v1+json"
+	MIME_V1_PRETTYJWS = "application/vnd.docker.distribution.manifest.v1+prettyjws"
 )
