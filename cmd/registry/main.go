@@ -214,7 +214,7 @@ Commands:
   catalog     List all repositories
   tags        List all tags for a repository
   tagsDate    List all tags creation date for a repository
-  matchtag    Resolve which versioned tags share the same image as a floating tag (e.g. stable)
+  matchtag    Find the highest semantic-version tag matching a floating tag (e.g. stable)
 
 Use "%s <command> --help" for more information about a command.
 `, os.Args[0], os.Args[0])
@@ -281,13 +281,14 @@ Options:
 func printMatchTagHelp() {
 	fmt.Fprintf(os.Stdout, `Usage: %s matchtag [options] <name>
 
-Resolve which versioned tags of a repository point at the same image content as a
-floating reference tag (default: %q).
+Find the highest semantic-version tag of a repository whose image content matches
+a floating reference tag (default: %q).
 
 Legacy Schema 1 manifests embed the tag name in their signed payload, so their
 manifest digest differs from one tag to another for an identical image. matchtag
 compares the layer content instead (config digest for v2/oci, sorted fsLayers for
-v1), which is tag-independent, and reports the highest matching x.y.z version.
+v1), which is tag-independent, and reports the highest matching semantic version,
+including prereleases such as x.y.z-qual.n.
 
 Arguments:
   name        Repository name (e.g. ncit/security-admin-api)

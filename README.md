@@ -8,11 +8,6 @@ cleanup of old tags and image layers.
 
 Requires Go 1.23 or newer (the module requests toolchain Go 1.23.5).
 
-**Current build limitation:** the CLI references `registry.DefaultMatchReference`
-and `RegistryClient.MatchTag`, whose implementations are missing from this
-checkout. The CLI build/install commands below will fail until those definitions
-are restored. The registry library can still be tested independently.
-
 Build from source:
 
 ```sh
@@ -89,7 +84,7 @@ REG_SCHEME=http registry --reg localhost:5000 catalog
 
 ## Usage
 
-These examples describe the CLI once the build limitation above is resolved.
+These examples describe the available CLI commands.
 
 ```text
 registry [--reg <host>] <command> [options]
@@ -101,7 +96,7 @@ registry [--reg <host>] <command> [options]
 | `tags` | `<name>` | Repository name and its tags. |
 | `inspect` | `<name>:<tag>` or `<name> <tag>` | Array of image configurations, including architecture, OS, creation date, and runtime configuration. Supports single-image Docker v2/OCI manifests and multi-platform lists/indexes. |
 | `tagsDate` | `<name>` | Intended to list tag names, architectures, and creation dates; currently fails with an error even after successful collection. |
-| `matchtag` | `<name>` | Wired into the CLI to find versioned tags matching a floating tag, but the library implementation is missing. Its `-r`/`--ref` flag selects the reference tag. |
+| `matchtag` | `<name>` | Finds the highest semantic-version tag, including prereleases such as `x.y.z-qual.n`, with image content matching a floating tag. Its `-r`/`--ref` flag selects the reference tag (default: `stable`). |
 
 All commands accept `-o`/`--output` with `json` (default), `yaml`, or `raw`.
 `raw` uses Go's printed value representation, not the original HTTP response.
@@ -138,7 +133,7 @@ there are no CLI delete, garbage-collection, or filesystem-scan commands.
 # Registry library tests (including local test registries).
 go test ./external/registry
 
-# Full suite and compile check (currently blocked by missing matchtag symbols).
+# Full suite and compile check.
 go test ./...
 go build ./...
 ```
@@ -154,12 +149,12 @@ Implemented features:
 - Accept both `inspect <name>:<tag>` and `inspect <name> <tag>`.
 - Select registries with `--reg` / `REG_HOST` and pick up Docker credentials.
 - Allow anonymous access when credentials are unavailable.
+- Match floating references to the highest versioned Docker v2, OCI, or legacy Schema 1 tag ([#4](https://github.com/Julien-Fruteau/go-distribution-registry/issues/4)).
 - Delete manifests and layers through the library.
 - Discover gzip blob file paths in registry filesystem storage.
 
 Planned features and fixes:
 
-- Complete the partially integrated `matchtag` command so the CLI builds ([#4](https://github.com/Julien-Fruteau/go-distribution-registry/issues/4)).
 - Fix `tagsDate` success handling and output ([#9](https://github.com/Julien-Fruteau/go-distribution-registry/issues/9)).
 - Remove or implement the unsupported catalog `--pagination` flag ([#5](https://github.com/Julien-Fruteau/go-distribution-registry/issues/5)).
 - Align `.env.tpl` with anonymous registry behavior ([#10](https://github.com/Julien-Fruteau/go-distribution-registry/issues/10)).

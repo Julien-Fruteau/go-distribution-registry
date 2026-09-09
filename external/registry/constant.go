@@ -34,6 +34,8 @@ package registry
 // application/vnd.oci.image.layer.v1.tar+zstd: "Layer", as a tar archive compressed with zstd
 // application/vnd.oci.empty.v1+json: Empty for unused descriptors
 const (
+	DefaultMatchReference = "stable"
+
 	MIME_V2_MANIFEST    = "application/vnd.docker.distribution.manifest.v2+json"
 	MIME_V2_LIST        = "application/vnd.docker.distribution.manifest.list.v2+json"
 	MIME_V2_CONFIG      = "application/vnd.docker.container.image.v1+json"
