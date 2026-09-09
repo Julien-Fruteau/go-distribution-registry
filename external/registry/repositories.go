@@ -275,9 +275,24 @@ func NewInspectInfo(name string, tagInfo Tag, digest, mediaType string, configRe
 func (r *RegistryClient) Inspect(name, tag string) ([]ConfigInfo, error) {
 	var inspectInfos []ConfigInfo
 
-	manifestsResp, _, err := r.GetManifests(name, tag)
+	// A tag can resolve to either an image manifest or a multi-platform index.
+	type inspectManifest struct {
+		ManifestResponse
+		Manifests []ManifestInfo `json:"manifests"`
+	}
+	u := fmt.Sprintf(r.baseUrl+manifestsPath, name, tag)
+	h := r.GetCustomHeader(fmt.Sprintf("%s, %s, %s, %s", MIME_OCI_LIST, MIME_V2_LIST, MIME_OCI_MANIFEST, MIME_V2_MANIFEST))
+	manifestsResp, _, err := HttpDo[inspectManifest](r.httpClient, http.MethodGet, u, h, nil)
 	if err != nil {
 		return inspectInfos, fmt.Errorf("error getting manifests for %s %s: %v", name, tag, err)
+	}
+
+	if manifestsResp.Config.Digest != "" {
+		info, _, err := r.ConfigInfo(name, manifestsResp.Config.Digest, manifestsResp.Config.MediaType)
+		if err != nil {
+			return nil, fmt.Errorf("error getting configInfo for %s %s: %v", name, manifestsResp.Config.Digest, err)
+		}
+		return []ConfigInfo{info}, nil
 	}
 
 	type result struct {
