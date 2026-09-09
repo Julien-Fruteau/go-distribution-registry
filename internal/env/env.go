@@ -1,3 +1,4 @@
+// Package env handles environment variables
 package env
 
 import (
@@ -13,7 +14,7 @@ func GetEnvOrDefault(name, other string) string {
 	return found
 }
 
-// motivation: provide an alias for an env var value (defined in lookupMap) instead of the full value
+// LookupEnvOrDefault motivation : provide an alias for an env var value (defined in lookupMap) instead of the full value
 // fallback to the provided env var value if not found in map, or the default value if the env var is not provided
 func LookupEnvOrDefault(lookUpMap map[string]string, name, other string) string {
 	defaut := GetEnvOrDefault(name, other)
@@ -25,7 +26,7 @@ func LookupEnvOrDefault(lookUpMap map[string]string, name, other string) string 
 	return defaut
 }
 
-// if conversion of env value found cannot be done,
+// GetEnvOrDefaultInt : if conversion of env value found cannot be done,
 // returns other
 func GetEnvOrDefaultInt(name string, other int) int {
 	found, ok := os.LookupEnv(name)
