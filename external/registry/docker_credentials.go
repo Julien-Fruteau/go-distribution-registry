@@ -67,19 +67,23 @@ func callCredHelper(helper, serverHost string) (dockerCredentials, error) {
 }
 
 // lookupDockerCredentials resolves credentials for serverHost from ~/.docker/config.json.
-// Resolution order: per-host credHelper → inline auths (bare and https:// prefixed) → global credsStore.
+// Resolution order: per-host credHelper → inline auths → global credsStore.
 func lookupDockerCredentials(configPath, serverHost string) (dockerCredentials, error) {
 	cfg, err := loadDockerConfig(configPath)
 	if err != nil {
 		return dockerCredentials{}, err
 	}
 
-	if helper, ok := cfg.CredHelpers[serverHost]; ok {
-		return callCredHelper(helper, serverHost)
+	// Docker normally writes a bare host here, but accepting URL/path forms
+	// keeps this lookup consistent with Docker's auths keys.
+	for key, helper := range cfg.CredHelpers {
+		if key == serverHost || normalizeDockerHost(key) == normalizeDockerHost(serverHost) {
+			return callCredHelper(helper, serverHost)
+		}
 	}
 
-	for _, key := range []string{serverHost, "https://" + serverHost} {
-		if entry, ok := cfg.Auths[key]; ok && entry.Auth != "" {
+	for key, entry := range cfg.Auths {
+		if normalizeDockerHost(key) == normalizeDockerHost(serverHost) && entry.Auth != "" {
 			u, p, err := decodeAuthEntry(entry.Auth)
 			if err != nil {
 				return dockerCredentials{}, fmt.Errorf("host %s: %w", serverHost, err)
@@ -135,8 +139,8 @@ func resolveHost(configPath, optHost string) (string, error) {
 		}
 	}
 	for h := range cfg.CredHelpers {
-		if h != "" {
-			seen[h] = struct{}{}
+		if normalized := normalizeDockerHost(h); normalized != "" {
+			seen[normalized] = struct{}{}
 		}
 	}
 

@@ -4,7 +4,32 @@ A Go client library and `registry` CLI for browsing a Distribution registry's
 repositories, tags, and image configuration. The longer-term goal is to support
 cleanup of old tags and image layers.
 
-## Installation
+Registry credentials are read using Docker's standard credential configuration.
+For a registry-specific helper, remove its entry from `auths` and configure the
+helper in `~/.docker/config.json`:
+
+```json
+{
+  "credHelpers": {
+    "dkr.enercal.nc": "pass"
+  }
+}
+```
+
+Or
+
+```json
+{
+  "credsStore": "pass"
+}
+```
+
+This makes the client invoke `docker-credential-pass get` for that registry.
+Install the matching `docker-credential-<name>` binary first. A global
+`credsStore` is also supported; set `REG_HOST` or pass `--reg <host>` when the
+registry cannot be inferred from the config.
+
+Target : clean up repository tag and image layers
 
 Requires Go 1.23 or newer (the module requests toolchain Go 1.23.5).
 
@@ -33,13 +58,13 @@ The CLI loads an optional `.env` from the current working directory. Existing
 process environment variables take precedence. A missing `.env` produces a
 warning but does not stop execution. Copy `.env.tpl` to `.env` if needed.
 
-| Setting | Behavior |
-| --- | --- |
-| `--reg <host>` | Global CLI flag; overrides `REG_HOST`. Place it **before** the command. |
-| `REG_HOST` | Registry hostname with optional port, such as `registry.example.com:5000`; omit the scheme and path. |
-| `REG_SCHEME` | Defaults to `http`. Set to `https` for TLS registries; `.env.tpl` uses `https`. |
-| `REG_USER`, `REG_PASSWORD` | If `REG_USER` is set, these override Docker credential lookup. A nonempty username enables HTTP Basic authentication. |
-| `REG_MIME` | Advanced override for the default HTTP `Accept` header (Docker v2 and OCI manifests/indexes). Some operations set their own media types. |
+| Setting                    | Behavior                                                                                                                                 |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `--reg <host>`             | Global CLI flag; overrides `REG_HOST`. Place it **before** the command.                                                                  |
+| `REG_HOST`                 | Registry hostname with optional port, such as `registry.example.com:5000`; omit the scheme and path.                                     |
+| `REG_SCHEME`               | Defaults to `http`. Set to `https` for TLS registries; `.env.tpl` uses `https`.                                                          |
+| `REG_USER`, `REG_PASSWORD` | If `REG_USER` is set, these override Docker credential lookup. A nonempty username enables HTTP Basic authentication.                    |
+| `REG_MIME`                 | Advanced override for the default HTTP `Accept` header (Docker v2 and OCI manifests/indexes). Some operations set their own media types. |
 
 Registry selection uses `--reg`, then `REG_HOST`, then the single registry listed
 in `~/.docker/config.json` under `auths` or `credHelpers`. If multiple registries
@@ -90,13 +115,13 @@ These examples describe the available CLI commands.
 registry [--reg <host>] <command> [options]
 ```
 
-| Command | Arguments | Result |
-| --- | --- | --- |
-| `catalog` | None | Repository names, following catalog pagination automatically. |
-| `tags` | `<name>` | Repository name and its tags. |
-| `inspect` | `<name>:<tag>` or `<name> <tag>` | Array of image configurations, including architecture, OS, creation date, and runtime configuration. Supports single-image Docker v2/OCI manifests and multi-platform lists/indexes. |
-| `tagsDate` | `<name>` | Intended to list tag names, architectures, and creation dates; currently fails with an error even after successful collection. |
-| `matchtag` | `<name>` | Finds the highest semantic-version tag, including prereleases such as `x.y.z-qual.n`, with image content matching a floating tag. Its `-r`/`--ref` flag selects the reference tag (default: `stable`). |
+| Command    | Arguments                        | Result                                                                                                                                                                                                 |
+| ---------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `catalog`  | None                             | Repository names, following catalog pagination automatically.                                                                                                                                          |
+| `tags`     | `<name>`                         | Repository name and its tags.                                                                                                                                                                          |
+| `inspect`  | `<name>:<tag>` or `<name> <tag>` | Array of image configurations, including architecture, OS, creation date, and runtime configuration. Supports single-image Docker v2/OCI manifests and multi-platform lists/indexes.                   |
+| `tagsDate` | `<name>`                         | Intended to list tag names, architectures, and creation dates; currently fails with an error even after successful collection.                                                                         |
+| `matchtag` | `<name>`                         | Finds the highest semantic-version tag, including prereleases such as `x.y.z-qual.n`, with image content matching a floating tag. Its `-r`/`--ref` flag selects the reference tag (default: `stable`). |
 
 All commands accept `-o`/`--output` with `json` (default), `yaml`, or `raw`.
 `raw` uses Go's printed value representation, not the original HTTP response.

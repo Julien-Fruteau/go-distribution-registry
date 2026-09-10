@@ -120,6 +120,21 @@ func TestLookupDockerCredentials_CredHelperTakesPrecedence(t *testing.T) {
 	assert.Contains(t, err.Error(), "nonexistent-helper")
 }
 
+func TestLookupDockerCredentials_CredHelperURLKey(t *testing.T) {
+	dir := t.TempDir()
+	helperPath := filepath.Join(dir, "docker-credential-test-helper")
+	require.NoError(t, os.WriteFile(helperPath, []byte(`#!/bin/sh
+printf '{"Username":"helper-user","Secret":"helper-pass","ServerURL":"%s"}' "$1"
+`), 0700))
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	path := writeDockerConfig(t, `{"credHelpers":{"https://registry.example.com/v1/":"test-helper"}}`)
+	creds, err := lookupDockerCredentials(path, "registry.example.com")
+	require.NoError(t, err)
+	assert.Equal(t, "helper-user", creds.Username)
+	assert.Equal(t, "helper-pass", creds.Password)
+}
+
 // --- normalizeDockerHost ---
 
 func TestNormalizeDockerHost_BareHost(t *testing.T) {
@@ -167,6 +182,15 @@ func TestResolveHost_SingleRegistry(t *testing.T) {
 func TestResolveHost_SingleRegistryHTTPSKey(t *testing.T) {
 	cfg := `{"auths":{"https://dkr.example.com":{"auth":"` + encodeAuth("u", "p") + `"}}}`
 	path := writeDockerConfig(t, cfg)
+	os.Unsetenv("REG_HOST")
+
+	host, err := resolveHost(path, "")
+	require.NoError(t, err)
+	assert.Equal(t, "dkr.example.com", host)
+}
+
+func TestResolveHost_SingleRegistryCredHelperURLKey(t *testing.T) {
+	path := writeDockerConfig(t, `{"credHelpers":{"https://dkr.example.com/v1/":"test-helper"}}`)
 	os.Unsetenv("REG_HOST")
 
 	host, err := resolveHost(path, "")
