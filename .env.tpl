@@ -13,9 +13,5 @@ REG_SCHEME=https
 # REG_PASSWORD=
 
 # For a credential helper, configure ~/.docker/config.json instead of keeping
-# an inline base64 auth value. Example for dkr.enercal.nc:
-# {
-#   "credHelpers": {"dkr.enercal.nc": "pass"}
-# }
 # The helper binary must be installed as docker-credential-pass. Other helper
 # names work the same way (secretservice, osxkeychain, ecr-login, ...).

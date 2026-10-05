@@ -8,14 +8,6 @@ Registry credentials are read using Docker's standard credential configuration.
 For a registry-specific helper, remove its entry from `auths` and configure the
 helper in `~/.docker/config.json`:
 
-```json
-{
-  "credHelpers": {
-    "dkr.enercal.nc": "pass"
-  }
-}
-```
-
 Or
 
 ```json
